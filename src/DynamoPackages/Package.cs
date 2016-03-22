@@ -7,9 +7,11 @@ using System.Reflection;
 
 using Dynamo.Core;
 using Dynamo.Engine;
+using Dynamo.Graph;
+using Dynamo.Graph.Nodes.CustomNodes;
+using Dynamo.Graph.Workspaces;
 using Dynamo.Interfaces;
 using Dynamo.Models;
-using Dynamo.Nodes;
 using Dynamo.Properties;
 using Dynamo.Utilities;
 using Greg.Requests;
@@ -199,11 +201,15 @@ namespace Dynamo.PackageManager
         {
             if (String.IsNullOrEmpty(RootDirectory) || !Directory.Exists(RootDirectory)) return;
 
+            var backupFolderName = @"\" + Configuration.Configurations.BackupFolderName + @"\";
+
             var nonDyfDllFiles = Directory.EnumerateFiles(
                 RootDirectory,
                 "*",
                 SearchOption.AllDirectories)
-                .Where(x => !x.ToLower().EndsWith(".dyf") && !x.ToLower().EndsWith(".dll") && !x.ToLower().EndsWith("pkg.json") && !x.ToLower().EndsWith(".backup"))
+                .Where(x => !x.ToLower().EndsWith(".dyf") && !x.ToLower().EndsWith(".dll") &&
+                    !x.ToLower().EndsWith("pkg.json") && !x.ToLower().EndsWith(".backup") &&
+                    !x.ToLower().Contains(backupFolderName))
                 .Select(x => new PackageFileInfo(RootDirectory, x));
 
             AdditionalFiles.Clear();

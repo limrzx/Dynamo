@@ -2,7 +2,7 @@
 using System.IO;
 using System.Linq;
 using System.Collections.Generic;
-
+using Dynamo.Scheduler;
 using Dynamo.Selection;
 
 using NUnit.Framework;
@@ -14,6 +14,9 @@ using System.Reflection;
 using System.Threading;
 using System.Globalization;
 using Dynamo.Engine.NodeToCode;
+using Dynamo.Graph;
+using Dynamo.Graph.Nodes;
+using Dynamo.Graph.Nodes.ZeroTouch;
 using Dynamo.Interfaces;
 
 namespace Dynamo.Tests
@@ -1107,7 +1110,7 @@ namespace Dynamo.Tests
             SelectAll(nodes);
 
             var functionNode = CurrentDynamoModel.CurrentWorkspace.Nodes.OfType<DSFunction>().FirstOrDefault();
-            var guid = functionNode.GUID.ToString().Replace("-", "").ToLower();
+            var guid = functionNode.AstIdentifierGuid;
 
             var command = new DynamoModel.ConvertNodesToCodeCommand();
             CurrentDynamoModel.ExecuteCommand(command);
@@ -1130,15 +1133,15 @@ namespace Dynamo.Tests
             string name = string.Empty;
             int typeID = -1;
 
-            t = ProtoCore.TypeSystem.BuildPrimitiveTypeObject(ProtoCore.PrimitiveType.kTypeInt);
+            t = ProtoCore.TypeSystem.BuildPrimitiveTypeObject(ProtoCore.PrimitiveType.Integer);
             name = nameProvider.GetTypeDependentName(t);
             Assert.AreEqual("num", name); 
 
-            t = ProtoCore.TypeSystem.BuildPrimitiveTypeObject(ProtoCore.PrimitiveType.kTypeDouble);
+            t = ProtoCore.TypeSystem.BuildPrimitiveTypeObject(ProtoCore.PrimitiveType.Double);
             name = nameProvider.GetTypeDependentName(t);
             Assert.AreEqual("num", name); 
 
-            t = ProtoCore.TypeSystem.BuildPrimitiveTypeObject(ProtoCore.PrimitiveType.kTypeString);
+            t = ProtoCore.TypeSystem.BuildPrimitiveTypeObject(ProtoCore.PrimitiveType.String);
             name = nameProvider.GetTypeDependentName(t);
             Assert.AreEqual("str", name);
 
@@ -1289,7 +1292,7 @@ namespace Dynamo.Tests
         /// <param name="dynFilePath"></param>
         protected void MutationTest(string dynFilePath)
         {
-            CurrentDynamoModel.Scheduler.ProcessMode = Core.Threading.TaskProcessMode.Asynchronous;
+            CurrentDynamoModel.Scheduler.ProcessMode = TaskProcessMode.Asynchronous;
 
             RunModel(dynFilePath);
             // Block until all tasks are executed

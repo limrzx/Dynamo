@@ -22,14 +22,11 @@ namespace ProtoScript.Runners
 
                 //defining the global Assoc block that wraps the entire .ds source file
                 ProtoCore.LanguageCodeBlock globalBlock = new ProtoCore.LanguageCodeBlock();
-                globalBlock.language = ProtoCore.Language.kAssociative;
-                globalBlock.body = code;
-                //the wrapper block can be given a unique id to identify it as the global scope
-                globalBlock.id = ProtoCore.LanguageCodeBlock.OUTERMOST_BLOCK_ID;
-
+                globalBlock.Language = ProtoCore.Language.Associative;
+                globalBlock.Code = code;
 
                 //passing the global Assoc wrapper block to the compiler
-                ProtoCore.Language id = globalBlock.language;
+                ProtoCore.Language id = globalBlock.Language;
                 int blockId = Constants.kInvalidIndex;
                 core.Compilers[id].Compile(out blockId, null, globalBlock, context, EventSink);
 
@@ -59,15 +56,12 @@ namespace ProtoScript.Runners
                 {
                     //defining the global Assoc block that wraps the entire .ds source file
                     ProtoCore.LanguageCodeBlock globalBlock = new ProtoCore.LanguageCodeBlock();
-                    globalBlock.language = ProtoCore.Language.kAssociative;
-                    globalBlock.body = string.Empty;
-                    //the wrapper block can be given a unique id to identify it as the global scope
-                    globalBlock.id = ProtoCore.LanguageCodeBlock.OUTERMOST_BLOCK_ID;
-
+                    globalBlock.Language = ProtoCore.Language.Associative;
+                    globalBlock.Code = string.Empty;
 
                     //passing the global Assoc wrapper block to the compiler
                     context.SetData(string.Empty, new Dictionary<string, object>(), null);
-                    ProtoCore.Language id = globalBlock.language;
+                    ProtoCore.Language id = globalBlock.Language;
 
 
                     ProtoCore.AST.AssociativeAST.CodeBlockNode codeblock = new ProtoCore.AST.AssociativeAST.CodeBlockNode();
@@ -104,11 +98,8 @@ namespace ProtoScript.Runners
         /// <returns></returns>
         public ProtoCore.RuntimeCore ExecuteVM(ProtoCore.Core core)
         {
-            ProtoCore.RuntimeCore runtimeCore = CreateRuntimeCore(core);
-
-            //Start the timer       
+            ProtoCore.RuntimeCore runtimeCore = CreateRuntimeCore(core);  
             runtimeCore.StartTimer();
-
             try
             {
                 foreach (ProtoCore.DSASM.CodeBlock codeblock in core.CodeBlockList)
@@ -121,7 +112,7 @@ namespace ProtoScript.Runners
 
                     // Comment Jun: Tell the new bounce stackframe that this is an implicit bounce
                     // Register TX is used for this.
-                    StackValue svCallConvention = StackValue.BuildCallingConversion((int)ProtoCore.DSASM.CallingConvention.BounceType.kImplicit);
+                    StackValue svCallConvention = StackValue.BuildCallingConversion((int)ProtoCore.DSASM.CallingConvention.BounceType.Implicit);
                     stackFrame.TX = svCallConvention;
 
                     // Initialize the entry point interpreter
@@ -130,11 +121,11 @@ namespace ProtoScript.Runners
                     runtimeCore.CurrentExecutive.CurrentDSASMExec = interpreter.runtime;
                     runtimeCore.CurrentExecutive.CurrentDSASMExec.Bounce(codeblock.codeBlockId, codeblock.instrStream.entrypoint, stackFrame, locals);
                 }
-                runtimeCore.NotifyExecutionEvent(ProtoCore.ExecutionStateEventArgs.State.kExecutionEnd);
+                runtimeCore.NotifyExecutionEvent(ProtoCore.ExecutionStateEventArgs.State.ExecutionEnd);
             }
             catch
             {
-                runtimeCore.NotifyExecutionEvent(ProtoCore.ExecutionStateEventArgs.State.kExecutionEnd);
+                runtimeCore.NotifyExecutionEvent(ProtoCore.ExecutionStateEventArgs.State.ExecutionEnd);
                 throw;
             }
             return runtimeCore;
@@ -167,7 +158,7 @@ namespace ProtoScript.Runners
 
                 // Comment Jun: Tell the new bounce stackframe that this is an implicit bounce
                 // Register TX is used for this.
-                StackValue svCallConvention = StackValue.BuildCallingConversion((int)ProtoCore.DSASM.CallingConvention.BounceType.kImplicit);
+                StackValue svCallConvention = StackValue.BuildCallingConversion((int)ProtoCore.DSASM.CallingConvention.BounceType.Implicit);
                 stackFrame.TX = svCallConvention;
 
                 // Initialize the entry point interpreter
@@ -185,11 +176,11 @@ namespace ProtoScript.Runners
                     stackFrame,
                     locals);
 
-                runtimeCore.NotifyExecutionEvent(ProtoCore.ExecutionStateEventArgs.State.kExecutionEnd);
+                runtimeCore.NotifyExecutionEvent(ProtoCore.ExecutionStateEventArgs.State.ExecutionEnd);
             }
             catch
             {
-                runtimeCore.NotifyExecutionEvent(ProtoCore.ExecutionStateEventArgs.State.kExecutionEnd);
+                runtimeCore.NotifyExecutionEvent(ProtoCore.ExecutionStateEventArgs.State.ExecutionEnd);
                 throw;
             }
             return runtimeCore;
@@ -231,7 +222,7 @@ namespace ProtoScript.Runners
             }
             runtimeCoreOut = runtimeCore;
 
-            if (isTest && !core.Options.CompileToLib)
+            if (isTest)
             {
                 return new ExecutionMirror(runtimeCore.CurrentExecutive.CurrentDSASMExec, runtimeCore);
             }
@@ -263,7 +254,7 @@ namespace ProtoScript.Runners
                 throw new ProtoCore.Exceptions.CompileErrorsOccured();
             }
 
-            if (isTest && !core.Options.CompileToLib)
+            if (isTest)
             {
                 return new ExecutionMirror(runtimeCore.CurrentExecutive.CurrentDSASMExec, runtimeCore);
             }
@@ -279,7 +270,7 @@ namespace ProtoScript.Runners
         /// <param name="core"></param>
         /// <param name="isTest"></param>
         /// <returns></returns>
-        public ExecutionMirror Execute(string sourcecode, ProtoCore.Core core, out ProtoCore.RuntimeCore runtimeCoreOut, bool isTest = true)
+        public ProtoCore.RuntimeCore Execute(string sourcecode, ProtoCore.Core core, bool isTest = true)
         {
             ProtoCore.RuntimeCore runtimeCore = null;
             bool succeeded = CompileAndGenerateExe(sourcecode, core, new ProtoCore.CompileTime.Context());
@@ -289,7 +280,7 @@ namespace ProtoScript.Runners
                 {
                     runtimeCore = ExecuteVM(core);
                 }
-                catch (ProtoCore.Exceptions.ExecutionCancelledException e)
+                catch (ProtoCore.Exceptions.ExecutionCancelledException)
                 {
                     Console.WriteLine("The execution has been cancelled!");
                 }
@@ -304,14 +295,11 @@ namespace ProtoScript.Runners
                 throw new ProtoCore.Exceptions.CompileErrorsOccured();
             }
 
-            runtimeCoreOut = runtimeCore;
-
-            if (isTest && !core.Options.CompileToLib)
+            if (isTest)
             {
-                return new ExecutionMirror(runtimeCore.CurrentExecutive.CurrentDSASMExec, runtimeCore);
+                runtimeCore.Mirror = new ExecutionMirror(runtimeCore.CurrentExecutive.CurrentDSASMExec, runtimeCore);
             }
-
-            return null;
+            return runtimeCore;
         }
 
         /// <summary>
@@ -321,7 +309,7 @@ namespace ProtoScript.Runners
         /// <param name="core"></param>
         /// <param name="isTest"></param>
         /// <returns></returns>
-        public ExecutionMirror LoadAndExecute(string filename, ProtoCore.Core core, out ProtoCore.RuntimeCore runtimeCoreOut, bool isTest = true)
+        public ProtoCore.RuntimeCore LoadAndExecute(string filename, ProtoCore.Core core, bool isTest = true)
         {
             System.IO.StreamReader reader = null;
             try
@@ -333,17 +321,12 @@ namespace ProtoScript.Runners
                 throw new Exception("Cannot open file " + filename);
             }
 
-            ProtoCore.RuntimeCore runtimeCore = null;
-
             string strSource = reader.ReadToEnd();
             reader.Dispose();
 
             core.Options.RootModulePathName = ProtoCore.Utils.FileUtils.GetFullPathName(filename);
             core.CurrentDSFileName = core.Options.RootModulePathName;
-            ExecutionMirror mirror = Execute(strSource, core, out runtimeCore);
-
-            runtimeCoreOut = runtimeCore;
-            return mirror;
+            return Execute(strSource, core);
         }
 
         

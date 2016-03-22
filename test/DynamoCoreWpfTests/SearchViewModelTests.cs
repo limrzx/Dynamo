@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
+using Dynamo.Configuration;
 using Dynamo.Search;
 using Dynamo.Search.SearchElements;
 using Dynamo.UI;
@@ -54,20 +55,20 @@ namespace Dynamo.Tests
         public void ShortenCategoryNameTests()
         {
             var categoryName = "";
-            var result = Nodes.Utilities.ShortenCategoryName(categoryName);
+            var result = Graph.Nodes.Utilities.ShortenCategoryName(categoryName);
             Assert.AreEqual(string.Empty, result);
 
             categoryName = null;
-            result = Nodes.Utilities.ShortenCategoryName(categoryName);
+            result = Graph.Nodes.Utilities.ShortenCategoryName(categoryName);
             Assert.AreEqual(string.Empty, result);
 
             categoryName = "Category1";
-            result = Nodes.Utilities.ShortenCategoryName(categoryName);
+            result = Graph.Nodes.Utilities.ShortenCategoryName(categoryName);
             Assert.AreEqual("Category1", result);
 
             categoryName = "Cat1 Cat" + Configurations.CategoryDelimiterWithSpaces + "Cat2 Cat" +
                                     Configurations.CategoryDelimiterWithSpaces + "Cat3";
-            result = Nodes.Utilities.ShortenCategoryName(categoryName);
+            result = Graph.Nodes.Utilities.ShortenCategoryName(categoryName);
             Assert.AreEqual("Cat1 Cat" + Configurations.CategoryDelimiterWithSpaces + "Cat2 Cat" +
                                       Configurations.CategoryDelimiterWithSpaces + "Cat3", result);
 
@@ -77,7 +78,7 @@ namespace Dynamo.Tests
                            "TenSymbol" + Configurations.CategoryDelimiterWithSpaces +
                            "TenSymbol" + Configurations.CategoryDelimiterWithSpaces +
                            "MoreSymbols";
-            result = Nodes.Utilities.ShortenCategoryName(categoryName);
+            result = Graph.Nodes.Utilities.ShortenCategoryName(categoryName);
             Assert.AreEqual("TenSymbol" + Configurations.CategoryDelimiterWithSpaces +
                            "..." + Configurations.CategoryDelimiterWithSpaces +
                            "TenSymbol" + Configurations.CategoryDelimiterWithSpaces +
@@ -624,6 +625,170 @@ namespace Dynamo.Tests
                 Entries.First(e => e.Name == "Member");
             Assert.IsNotNull(elementVM);
             Assert.AreEqual("BBB", elementVM.Description);
+        }
+
+        #endregion
+
+        #region Key navigation
+
+        [Test, Category("UnitTests")]
+        public void ToggleSelectionTest()
+        {
+            var elementVM = CreateCustomNodeViewModel(CreateCustomNode("AMember", "Category"));
+            elementVM.IsSelected = false;
+
+            var items = new List<NodeSearchElementViewModel>();
+            items.Add(elementVM);
+
+            elementVM = CreateCustomNodeViewModel(CreateCustomNode("BMember", "Category"));
+            elementVM.IsSelected = true;
+
+            items.Add(elementVM);
+
+            var result = viewModel.ToggleSelect(items);
+
+            Assert.IsTrue(result.First().IsSelected);
+            Assert.IsFalse(result.Last().IsSelected);
+        }
+
+        [Test, Category("UnitTests")]
+        public void FirstItemIsSelectedAfterSearch()
+        {
+            var element = CreateCustomNode("AMember", "Category");
+            model.Add(element);
+
+            element = CreateCustomNode("BMember", "Category");
+            model.Add(element);
+
+            viewModel.Visible = true;
+            viewModel.SearchAndUpdateResults("member");
+
+            Assert.AreEqual(2, viewModel.FilteredResults.Count());
+            Assert.IsTrue(viewModel.FilteredResults.ElementAt(0).IsSelected);
+            Assert.IsFalse(viewModel.FilteredResults.ElementAt(1).IsSelected);
+        }
+
+        [Test, Category("UnitTests")]
+        public void NoItemsIsSelectedAfterSearch()
+        {
+            viewModel.Visible = true;
+            viewModel.SearchAndUpdateResults("member");
+
+            Assert.DoesNotThrow(() => viewModel.MoveSelection(SearchViewModel.Direction.Down));
+            Assert.IsFalse(viewModel.FilteredResults.Any());
+        }
+
+        [Test]
+        [Category("UnitTests")]
+        public void MoveForward()
+        {
+            var element = CreateCustomNode("AMember", "Category");
+            model.Add(element);
+
+            element = CreateCustomNode("BMember", "Category");
+            model.Add(element);
+
+            viewModel.Visible = true;
+            viewModel.SearchAndUpdateResults("member");
+
+            Assert.AreEqual(2, viewModel.FilteredResults.Count());
+            Assert.IsTrue(viewModel.FilteredResults.ElementAt(0).IsSelected);
+
+            viewModel.MoveSelection(SearchViewModel.Direction.Down);
+            Assert.IsTrue(viewModel.FilteredResults.ElementAt(1).IsSelected);
+
+            viewModel.MoveSelection(SearchViewModel.Direction.Down);
+            Assert.IsTrue(viewModel.FilteredResults.ElementAt(1).IsSelected);
+        }
+
+        [Test]
+        [Category("UnitTests")]
+        public void MoveBack()
+        {
+            var element = CreateCustomNode("AMember", "Category");
+            model.Add(element);
+
+            element = CreateCustomNode("BMember", "Category");
+            model.Add(element);
+
+            viewModel.Visible = true;
+            viewModel.SearchAndUpdateResults("member");
+
+            Assert.AreEqual(2, viewModel.FilteredResults.Count());
+            Assert.IsTrue(viewModel.FilteredResults.ElementAt(0).IsSelected);
+
+            viewModel.MoveSelection(SearchViewModel.Direction.Up);
+            Assert.IsTrue(viewModel.FilteredResults.ElementAt(0).IsSelected);
+
+            viewModel.MoveSelection(SearchViewModel.Direction.Down);
+            Assert.IsTrue(viewModel.FilteredResults.ElementAt(1).IsSelected);
+
+            viewModel.MoveSelection(SearchViewModel.Direction.Up);
+            Assert.IsTrue(viewModel.FilteredResults.ElementAt(0).IsSelected);
+        }
+
+        #endregion
+
+        #region Selection of category
+
+        [Test]
+        [Category("UnitTests")]
+        public void SelectAllSearchCategories()
+        {
+            var element = CreateCustomNode("AMember", "CategoryA");
+            model.Add(element);
+
+            element = CreateCustomNode("BMember", "CategoryB");
+            model.Add(element);
+
+            viewModel.Visible = true;
+            viewModel.SearchAndUpdateResults("member");
+            Assert.AreEqual(2, viewModel.FilteredResults.Count());
+
+            Assert.IsTrue(viewModel.SearchCategories.All(c => c.IsSelected));
+
+            viewModel.UnSelectAllCategories();
+            Assert.IsTrue(viewModel.SearchCategories.All(c => c.IsSelected == false));
+
+            viewModel.SelectAllCategories(null);
+            Assert.IsTrue(viewModel.SearchCategories.All(c => c.IsSelected));
+        }
+
+
+        [Test]
+        [Category("UnitTests")]
+        public void OpenSelectedClassTest()
+        {
+            var element = CreateCustomNode("AMember", "CategoryA.ClassA");
+            model.Add(element);
+
+            element = CreateCustomNode("BMember", "CategoryB.ClassB");
+            model.Add(element);
+
+            viewModel.OpenSelectedClass("CategoryB.ClassB");
+
+            Assert.IsTrue(viewModel.BrowserRootCategories[1].IsExpanded);
+            var classVM = viewModel.BrowserRootCategories[1].Items[0] as NodeCategoryViewModel;
+            Assert.IsTrue((classVM.Items[0] as NodeCategoryViewModel).IsExpanded);
+        }
+
+        [Test]
+        [Category("UnitTests")]
+        public void CollapseAllTest()
+        {
+            var element = CreateCustomNode("AMember", "CategoryA.SubCategoryA.ClassA");
+            model.Add(element);
+
+            element = CreateCustomNode("BMember", "CategoryB.SubCategoryB.ClassB");
+            model.Add(element);
+
+            viewModel.BrowserRootCategories[1].IsExpanded = true;
+            viewModel.BrowserRootCategories[1].SubCategories[0].IsExpanded = true;
+
+            viewModel.CollapseAll(viewModel.BrowserRootCategories);
+
+            Assert.IsFalse(viewModel.BrowserRootCategories[1].IsExpanded);
+            Assert.IsFalse(viewModel.BrowserRootCategories[1].SubCategories[0].IsExpanded);
         }
 
         #endregion

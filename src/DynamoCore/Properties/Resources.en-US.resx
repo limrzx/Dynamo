@@ -163,19 +163,23 @@
     <value>Composed function: g(f(x))</value>
   </data>
   <data name="RangePortDataAmountToolTip" xml:space="preserve">
-    <value>Amount of numbers in the sequence</value>
+    <value>Amount of numbers in the sequence
+Default value: 10</value>
   </data>
   <data name="RangePortDataEndToolTip" xml:space="preserve">
-    <value>Number or letter to end the sequence at</value>
+    <value>Number or letter to end the sequence at
+Default value: 9</value>
   </data>
   <data name="RangePortDataSeqToolTip" xml:space="preserve">
     <value>New sequence</value>
   </data>
   <data name="RangePortDataStartToolTip" xml:space="preserve">
-    <value>Number or letter to start the sequence at</value>
+    <value>Number or letter to start the sequence at
+Default value: 0</value>
   </data>
   <data name="RangePortDataStepToolTip" xml:space="preserve">
-    <value>Space between numbers or letters</value>
+    <value>Space between numbers or letters
+Default value: 1</value>
   </data>
   <data name="PortDataParameterToolTip" xml:space="preserve">
     <value>parameter</value>
@@ -349,7 +353,7 @@ Sorry about that.</value>
     <value>The package was found to be empty and was not installed.</value>
   </data>
   <data name="PackageTooLarge" xml:space="preserve">
-    <value>The package is too large!  The package must be less than 15 MB!</value>
+    <value>The package is too large!  The package must be less than 1 GB!</value>
   </data>
   <data name="PathNotRegconizableAsStableOrDailyBuild" xml:space="preserve">
     <value>The specified file path is not recognizable as a stable or a daily build</value>
@@ -635,5 +639,11 @@ value : bool = false</value>
   </data>
   <data name="ResourceTypeDoesNotHavePropertyMessage" xml:space="preserve">
     <value>Resource Type does not have Property</value>
+  </data>
+  <data name="WarningInvalidOutput" xml:space="preserve">
+    <value>Only comments and single variable are allowed in output node.</value>
+  </data>
+  <data name="FailedToLoadLibrary" xml:space="preserve">
+    <value>Failed to load library: {0}</value>
   </data>
 </root>

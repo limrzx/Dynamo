@@ -1,20 +1,19 @@
 ﻿using System.Collections.Generic;
-
-using Dynamo.Core.Threading;
+using CoreNodeModels.Properties;
 using Dynamo.Engine;
-using Dynamo.Models;
-using Dynamo.Interfaces;
-
-using DSCoreNodesUI.Properties;
+using Dynamo.Graph.Nodes;
+using Dynamo.Scheduler;
+using Dynamo.Visualization;
 using ProtoCore.AST.AssociativeAST;
 
-namespace Dynamo.Nodes
+namespace CoreNodeModels
 {
     [NodeName("Watch Image")]
-    [NodeDescription("WatchImageDescription", typeof(DSCoreNodesUI.Properties.Resources))]
+    [NodeDescription("WatchImageDescription", typeof(Resources))]
     [NodeCategory(BuiltinNodeCategories.CORE_VIEW)]
-    [NodeSearchTags("WatchImageSearchTags", typeof(DSCoreNodesUI.Properties.Resources))]
+    [NodeSearchTags("WatchImageSearchTags", typeof(Resources))]
     [IsDesignScriptCompatible]
+    [AlsoKnownAs("Dynamo.Nodes.WatchImageCore", "DSCoreNodesUI.WatchImageCore")]
     public class WatchImageCore : NodeModel
     {
         public WatchImageCore()
@@ -32,10 +31,11 @@ namespace Dynamo.Nodes
             yield return AstFactory.BuildAssignment(GetAstIdentifierForOutputIndex(0), inputAstNodes[0]);
         }
 
-        public override void RequestVisualUpdateAsync(
+        public override bool RequestVisualUpdateAsync(
             IScheduler scheduler, EngineController engine, IRenderPackageFactory factory, bool forceUpdate = false)
         {
             //Do nothing
+            return false;
         }
     }
 

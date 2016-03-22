@@ -46,7 +46,7 @@ namespace ProtoTest.TD.Imperative
 }";
             ExecutionMirror mirror = thisTest.RunScriptSource(src);
             Assert.IsTrue(mirror.GetValue("a").DsasmValue.IsNull);
-            TestFrameWork.VerifyBuildWarning(ProtoCore.BuildData.WarningID.kIdUnboundIdentifier);
+            TestFrameWork.VerifyBuildWarning(ProtoCore.BuildData.WarningID.IdUnboundIdentifier);
         }
 
         [Test]
@@ -852,7 +852,7 @@ _c;
 }";
             ExecutionMirror mirror = thisTest.RunScriptSource(src);
             Assert.IsTrue(mirror.GetValue("a").DsasmValue.IsNull);
-            TestFrameWork.VerifyBuildWarning(ProtoCore.BuildData.WarningID.kIdUnboundIdentifier);
+            TestFrameWork.VerifyBuildWarning(ProtoCore.BuildData.WarningID.IdUnboundIdentifier);
         }
 
         [Test]
@@ -1155,7 +1155,7 @@ b;
         }
 
         [Test]
-        [Category("DSDefinedClass_Ignored_Inheritance")]
+        [Ignore][Category("DSDefinedClass_Ignored_Inheritance")]
         [Category("SmokeTest")]
         public void T54_Defect_1454691()
         {
@@ -1609,7 +1609,7 @@ x;
 
 
         [Test]
-        [Category("DSDefinedClass_Ignored")]
+        [Ignore][Category("DSDefinedClass_Ignored")]
         [Category("Failure")]
         public void T67_DNL_1467458_3()
         {
@@ -1646,7 +1646,7 @@ x;
         }
 
         [Test]
-        [Category("DSDefinedClass_Ignored")]
+        [Ignore][Category("DSDefinedClass_Ignored")]
         public void T67_DNL_1467458_4()
         {
             String code =

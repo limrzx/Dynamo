@@ -5,8 +5,8 @@ using System.Windows.Media;
 
 using Dynamo.Controls;
 using Dynamo.Nodes;
-using Dynamo.UI;
-using DSCore.File;
+using CoreNodeModels.Input;
+using Dynamo.Configuration;
 using Dynamo.Wpf;
 
 namespace DSCore.File
@@ -42,7 +42,7 @@ namespace DSCore.File
             tb.TextChanged += delegate
             {
                 tb.ScrollToHorizontalOffset(double.PositiveInfinity);
-                nodeView.ViewModel.DynamoViewModel.ReturnFocusToSearch();
+                nodeView.ViewModel.DynamoViewModel.OnRequestReturnFocusToView();
             };
             tb.Margin = new Thickness(0, 5, 0, 5);
 

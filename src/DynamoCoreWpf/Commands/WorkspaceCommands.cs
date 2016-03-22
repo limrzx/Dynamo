@@ -1,4 +1,7 @@
 ﻿using System.Linq;
+using Dynamo.Graph;
+using Dynamo.Graph.Nodes;
+using Dynamo.Graph.Workspaces;
 using Dynamo.Models;
 using Dynamo.Selection;
 using Dynamo.UI.Commands;
@@ -28,6 +31,7 @@ namespace Dynamo.ViewModels
         private DelegateCommand _showHideAllUpstreamPreviewCommand;
         private DelegateCommand _showInCanvasSearchCommand;
         private DelegateCommand _pasteCommand;
+        private DelegateCommand _computeRunStateCommand;
 
         #endregion
 
@@ -213,7 +217,7 @@ namespace Dynamo.ViewModels
                 return _showInCanvasSearchCommand;
             }
         }
-
+         
         #endregion
 
         #region Properties for Command Data Binding

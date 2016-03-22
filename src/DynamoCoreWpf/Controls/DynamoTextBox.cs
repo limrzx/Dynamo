@@ -6,7 +6,10 @@ using System.Windows.Data;
 using System.Windows.Input;
 using System.Windows.Media;
 using System.Windows.Threading;
+using Dynamo.Configuration;
 using Dynamo.Controls;
+using Dynamo.Graph;
+using Dynamo.Graph.Nodes;
 using Dynamo.Models;
 using Dynamo.Search;
 using Dynamo.UI;
@@ -62,14 +65,6 @@ namespace Dynamo.Nodes
 
     public class DynamoTextBox : ClickSelectTextBox
     {
-        public event RequestReturnFocusToSearchHandler RequestReturnFocusToSearch;
-        public delegate void RequestReturnFocusToSearchHandler();
-        protected void OnRequestReturnFocusToSearch()
-        {
-            if (RequestReturnFocusToSearch != null)
-                RequestReturnFocusToSearch();
-        }
-
         public event Action OnChangeCommitted;
 
         private static Brush clear = new SolidColorBrush(Color.FromArgb(100, 255, 255, 255));
@@ -109,15 +104,6 @@ namespace Dynamo.Nodes
             Pending = false;
             Style = (Style)SharedDictionaryManager.DynamoModernDictionary["SZoomFadeTextBox"];
             MinHeight = 20;
-
-            RequestReturnFocusToSearch += TryFocusSearch;
-        }
-
-        private void TryFocusSearch()
-        {
-            if (NodeViewModel == null) return;
-
-            NodeViewModel.DynamoViewModel.ReturnFocusToSearch();
         }
 
         public void BindToProperty(Binding binding)
@@ -179,9 +165,9 @@ namespace Dynamo.Nodes
 
         protected override void OnPreviewKeyDown(KeyEventArgs e)
         {
-            if (e.Key == Key.Return || e.Key == Key.Enter)
+            if (e.Key == Key.Enter && NodeViewModel != null)
             {
-                OnRequestReturnFocusToSearch();
+                NodeViewModel.DynamoViewModel.OnRequestReturnFocusToView();
             }
         }
 

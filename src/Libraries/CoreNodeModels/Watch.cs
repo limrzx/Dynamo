@@ -1,22 +1,21 @@
 ﻿using System;
 using System.Collections.Generic;
-
-using Dynamo.Core.Threading;
+using CoreNodeModels.Properties;
 using Dynamo.Engine;
-using Dynamo.Models;
-using Dynamo.Interfaces;
-
-using DSCoreNodesUI.Properties;
+using Dynamo.Graph.Nodes;
+using Dynamo.Scheduler;
+using Dynamo.Visualization;
 using ProtoCore.AST.AssociativeAST;
 using VMDataBridge;
 
-namespace Dynamo.Nodes
+namespace CoreNodeModels
 {
     [NodeName("Watch")]
     [NodeCategory(BuiltinNodeCategories.CORE_VIEW)]
-    [NodeDescription("WatchNodeDescription", typeof(DSCoreNodesUI.Properties.Resources))]
-    [NodeSearchTags("WatchNodeSearchTags", typeof(DSCoreNodesUI.Properties.Resources))]
+    [NodeDescription("WatchNodeDescription", typeof(Resources))]
+    [NodeSearchTags("WatchNodeSearchTags", typeof(Resources))]
     [IsDesignScriptCompatible]
+    [AlsoKnownAs("Dynamo.Nodes.Watch", "DSCoreNodesUI.Watch")]
     public class Watch : NodeModel
     {
         public event Action<Object> EvaluationComplete;
@@ -100,10 +99,11 @@ namespace Dynamo.Nodes
             return resultAst;
         }
 
-        public override void RequestVisualUpdateAsync(
+        public override bool RequestVisualUpdateAsync(
             IScheduler scheduler, EngineController engine, IRenderPackageFactory factory, bool forceUpdate = false)
         {
             // Do nothing
+            return false;
         }
     }
 }

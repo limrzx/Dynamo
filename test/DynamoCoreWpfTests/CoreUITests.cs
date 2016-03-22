@@ -5,18 +5,26 @@ using System.Threading;
 using System.Windows;
 
 using SystemTestServices;
-
-using Dynamo;
+using CoreNodeModels.Input;
+using Dynamo.Configuration;
 using Dynamo.Controls;
+using Dynamo.Graph.Connectors;
+using Dynamo.Graph.Nodes;
+using Dynamo.Graph.Nodes.ZeroTouch;
+using Dynamo.Graph.Workspaces;
 using Dynamo.Models;
 using Dynamo.Nodes;
+using Dynamo.Scheduler;
 using Dynamo.Selection;
 using Dynamo.Services;
 using Dynamo.Utilities;
 using Dynamo.ViewModels;
-using Dynamo.Wpf.ViewModels.Watch3D;
 using NUnit.Framework;
 using DynamoCoreWpfTests.Utility;
+using Dynamo.Views;
+using System.Windows.Input;
+using ModifierKeys = System.Windows.Input.ModifierKeys;
+using System.Windows.Controls;
 
 namespace DynamoCoreWpfTests
 {
@@ -591,8 +599,8 @@ namespace DynamoCoreWpfTests
                 {
                     StartInTestMode = startInTestMode,
                     ProcessMode = startInTestMode 
-                        ? Dynamo.Core.Threading.TaskProcessMode.Synchronous 
-                        : Dynamo.Core.Threading.TaskProcessMode.Asynchronous
+                        ? TaskProcessMode.Synchronous 
+                        : TaskProcessMode.Asynchronous
                 });
 
             ViewModel = DynamoViewModel.Start(
@@ -703,6 +711,65 @@ namespace DynamoCoreWpfTests
             dn.Update(new Point2D(-16, 72));
             Assert.AreEqual(-8, locatable.X);
             Assert.AreEqual(40, locatable.Y);
+        }
+
+        [Test]
+        [Category("UnitTests")]
+        public void WorkspaceContextMenu_TestIfOpenOnRightClick()
+        {
+            var currentWs = View.ChildOfType<WorkspaceView>();
+            Assert.IsNotNull(currentWs, "DynamoView does not have any WorkspaceView");
+            RightClick(currentWs.zoomBorder);
+
+            Assert.IsTrue(currentWs.ContextMenuPopup.IsOpen);
+        }
+
+        [Test]
+        [Category("UnitTests")]
+        public void WorkspaceContextMenu_TestIfNotOpenOnNodeRightClick()
+        {
+            var currentWs = View.ChildOfType<WorkspaceView>();
+            Assert.IsNotNull(currentWs, "DynamoView does not have any WorkspaceView");
+            CreateNodeOnCurrentWorkspace();
+
+            DispatcherUtil.DoEvents();
+            var node = currentWs.ChildOfType<NodeView>();
+            RightClick(node);
+
+            // workspace context menu shouldn't be open
+            Assert.IsFalse(currentWs.ContextMenuPopup.IsOpen);
+        }
+
+        [Test]
+        [Category("UnitTests")]
+        public void WorkspaceContextMenu_TestIfInCanvasSearchHidesOnOpeningContextMenu()
+        {
+            var currentWs = View.ChildOfType<WorkspaceView>();
+
+            // show in-canvas search
+            ViewModel.CurrentSpaceViewModel.ShowInCanvasSearchCommand.Execute(ShowHideFlags.Show);
+            Assert.IsTrue(currentWs.InCanvasSearchBar.IsOpen);
+
+            // open context menu
+            RightClick(currentWs.zoomBorder);
+
+            Assert.IsTrue(currentWs.ContextMenuPopup.IsOpen);
+            Assert.IsFalse(currentWs.InCanvasSearchBar.IsOpen);
+        }
+
+        private void RightClick(IInputElement element)
+        {
+            element.RaiseEvent(new MouseButtonEventArgs(Mouse.PrimaryDevice, 0, MouseButton.Right)
+            {
+                RoutedEvent = Mouse.MouseDownEvent
+            });
+
+            element.RaiseEvent(new MouseButtonEventArgs(Mouse.PrimaryDevice, 0, MouseButton.Right)
+            {
+                RoutedEvent = Mouse.MouseUpEvent
+            });
+
+            DispatcherUtil.DoEvents();
         }
     }
 }

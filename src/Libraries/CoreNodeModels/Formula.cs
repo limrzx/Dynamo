@@ -2,23 +2,20 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Xml;
-
-using Dynamo.Core;
-using Dynamo.Models;
-using Dynamo.Nodes;
-using Dynamo.Utilities;
+using Dynamo.Graph;
+using Dynamo.Graph.Nodes;
 using NCalc;
 using ProtoCore;
 using ProtoCore.AST.AssociativeAST;
-using ProtoCore.Namespace;
 using Expression = NCalc.Expression;
 
-namespace DSCoreNodesUI
+namespace CoreNodeModels
 {
     [NodeName("Formula")]
-    [NodeDescription("FormulaDescription", typeof(DSCoreNodesUI.Properties.Resources))]
+    [NodeDescription("FormulaDescription", typeof(Properties.Resources))]
     [NodeCategory(BuiltinNodeCategories.CORE_SCRIPTING)]
     [IsDesignScriptCompatible]
+    [AlsoKnownAs("DSCoreNodesUI.Formula")]
     public class Formula : NodeModel
     {
         private string formulaString = "";
@@ -196,13 +193,13 @@ namespace DSCoreNodesUI
 
             var functionDef = new FunctionDefinitionNode
             {
-                Name = "__formula_" + GUID.ToString().Replace("-", string.Empty),
+                Name = "__formula_" + AstIdentifierGuid, 
                 Signature =
                     new ArgumentSignatureNode
                     {
                         Arguments = inputs.Select(AstFactory.BuildParamNode).ToList()
                     },
-                ReturnType = TypeSystem.BuildPrimitiveTypeObject(PrimitiveType.kTypeVar),
+                ReturnType = TypeSystem.BuildPrimitiveTypeObject(PrimitiveType.Var),
                 FunctionBody =
                     new CodeBlockNode
                     {

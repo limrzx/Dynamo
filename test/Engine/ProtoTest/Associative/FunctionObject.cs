@@ -16,8 +16,8 @@ namespace ProtoTest.Associative
 import (""FunctionObject.ds"");
 def add1(x) { return = x + 1; }
 def lt10(x) { return = x < 10; }
-add1fo = _SingleFunctionObject(add1, 1, {}, {null}, true);
-lt10fo = _SingleFunctionObject(lt10, 1, {}, {null}, true);
+add1fo = Function(add1, 1, {}, {null}, true);
+lt10fo = Function(lt10, 1, {}, {null}, true);
 r = LoopWhile(0, lt10fo, add1fo);
 ";
             thisTest.RunScriptSource(code);
@@ -33,7 +33,7 @@ import (""FunctionObject.ds"");
 def add(x,y) { return = x + y;}
 
 // fo = add(?, 42);
-fo = _SingleFunctionObject(add, 2, {1}, {null, 42}, true);
+fo = Function(add, 2, {1}, {null, 42}, true);
 r = __Apply(fo, 3);
 ";
             thisTest.RunScriptSource(code);
@@ -49,7 +49,7 @@ import (""FunctionObject.ds"");
 def add(x,y,z) { return = x + y + z;}
 
 // foo1 = add(?, 42, ?);
-fo1 = _SingleFunctionObject(add, 3, {1}, {null, 42, null}, true);
+fo1 = Function(add, 3, {1}, {null, 42, null}, true);
 
 // foo2 = add(100, 42, ?);
 fo2 = __Apply(fo1, 100);
@@ -69,7 +69,7 @@ import (""FunctionObject.ds"");
 def add(x,y) { return = x + y;}
 
 // fo = add(?, {100, 200});
-fo = _SingleFunctionObject(add, 2, {1}, {null, {100, 200}}, true);
+fo = Function(add, 2, {1}, {null, {100, 200}}, true);
 r = __Apply(fo, {1, 2});
 ";
             thisTest.RunScriptSource(code);
@@ -85,7 +85,7 @@ import (""FunctionObject.ds"");
 def add(x,y) { return = x + y;}
 
 // fo = add(?, {100, 200});
-fo = _SingleFunctionObject(add, 2, {1}, {null, {100, 200}}, true);
+fo = Function(add, 2, {1}, {null, {100, 200}}, true);
 r = __Apply(fo, 1);
 ";
             thisTest.RunScriptSource(code);
@@ -101,7 +101,7 @@ import (""FunctionObject.ds"");
 def add(x,y) { return = x + y;}
 
 // fo = add(?, {100, 200});
-fo = _SingleFunctionObject(add, 2, {1}, {null, {100, 200}}, true);
+fo = Function(add, 2, {1}, {null, {100, 200}}, true);
 r = __Apply(fo, {1});
 ";
             thisTest.RunScriptSource(code);
@@ -119,7 +119,7 @@ def add(x,y) { return = x + y;}
 
 def getFunctionObject()
 {
-    return = _SingleFunctionObject(add, 2, {1}, {null, 100}, true);
+    return = Function(add, 2, {1}, {null, 100}, true);
 }
 
 fo = getFunctionObject();
@@ -142,7 +142,7 @@ def add(x,y) { return = x + y;}
 def mul(x,y) { return = x * y;}
 def getFunctionObject(f:function)
 {
-    return = _SingleFunctionObject(f, 2, {1}, {null, 100}, true);
+    return = Function(f, 2, {1}, {null, 100}, true);
 }
 
 fo1 = getFunctionObject(add);
@@ -166,7 +166,7 @@ def add(x,y) { return = x + y;}
 def mul(x,y) { return = x * y;}
 def getFunctionObject(f:function)
 {
-    return = _SingleFunctionObject(f, 2, {1}, {null, 100}, true);
+    return = Function(f, 2, {1}, {null, 100}, true);
 }
 
 fo = getFunctionObject({add, mul});
@@ -185,8 +185,8 @@ import (""FunctionObject.ds"");
 def add(x,y) { return = x + y;}
 def mul(x, y) { return = x * y;}
 
-fo1 = _SingleFunctionObject(add, 2, {1}, {null, 100}, true);
-fo2 = _SingleFunctionObject(mul, 2, {0}, {3, null}, true);
+fo1 = Function(add, 2, {1}, {null, 100}, true);
+fo2 = Function(mul, 2, {0}, {3, null}, true);
 fo3 = _ComposedFunctionObject({fo1, fo2});
 
 // r = 2 * 3 + 100
@@ -205,7 +205,7 @@ import (""FunctionObject.ds"");
 def add(x,y) { return = x + y;}
 def mul(x, y) { return = x * y;}
 
-fo1 = _SingleFunctionObject(add, 2, {1}, {null, 100}, true);
+fo1 = Function(add, 2, {1}, {null, 100}, true);
 fo2 = _ComposedFunctionObject({fo1, fo1});
 
 // r = 42 + 100 + 100
@@ -227,8 +227,8 @@ def add(x, y) { return = x + y; }
 
 def mul(x, y) { return = x * y; }
 
-fo1 = _SingleFunctionObject(add, 2, { 1 }, { null, 3}, true);
-fo2 = _SingleFunctionObject(mul, 2, { 0 }, { 5, null }, true);
+fo1 = Function(add, 2, { 1 }, { null, 3}, true);
+fo2 = Function(mul, 2, { 0 }, { 5, null }, true);
 
 r1 = __Apply(fo1, 7);     // 3 + 7
 r2 = __Apply(fo2, 11);    // 5 * 11
@@ -262,7 +262,7 @@ def foo(x, y)
     return = x + y;
 }
 
-fo = _SingleFunctionObject(foo, 2, { 1 }, { null, 100 }, true);
+fo = Function(foo, 2, { 1 }, { null, 100 }, true);
 r = __Apply(fo, 3);
 ";
             thisTest.RunScriptSource(code);
@@ -283,7 +283,7 @@ def Foo(x, y)
 }
 
 
-c = _SingleFunctionObject(Foo, 2, { 1 }, { null, 100 }, true);
+c = Function(Foo, 2, { 1 }, { null, 100 }, true);
 f = __Apply(c, 3);
 r = f;
 ";
@@ -311,7 +311,7 @@ def getCoordinateValue(p : DummyPoint)
     return = p.X + p.Y + p.Z;
 }
 
-getPointKey = _SingleFunctionObject(getCoordinateValue, 1, { }, { }, true);
+getPointKey = Function(getCoordinateValue, 1, { }, { }, true);
 r1 = SortByFunction(null, getPointKey);
 r2 = SortByFunction({ }, getPointKey);
 
@@ -335,6 +335,55 @@ t4 = __Map(getPointKey, r6);
         }
 
         [Test]
+        public void TestGroupByFunction()
+        {
+            string code =
+    @"import(""FFITarget.dll"");
+import (""DSCoreNodes.dll"");
+import (""FunctionObject.ds"");
+
+p1 = DummyPoint.ByCoordinates(0, 0, 0);
+p2 = DummyPoint.ByCoordinates(1, 0, 0);
+p3 = DummyPoint.ByCoordinates(1, -1, 0);
+
+def getCoordinateValue(p : DummyPoint)
+{
+    return = p.X + p.Y + p.Z;
+}
+
+getPointKey = Function(getCoordinateValue, 1, { }, { }, true);
+r1 = GroupByFunction(null, getPointKey);
+r2 = GroupByFunction({ }, getPointKey);
+
+r3 = GroupByFunction({ p1 }, getPointKey);
+
+r4 = GroupByFunction({ p1, p2, p3 }, getPointKey);
+
+";
+            thisTest.RunScriptSource(code);
+            thisTest.Verify("r1", null);
+            thisTest.Verify("r2", new object[] { });
+            thisTest.Verify("r3", new object[]
+            {
+                new object[]
+                {
+                    FFITarget.DummyPoint.ByCoordinates(0, 0, 0)
+                }
+            });
+            thisTest.Verify("r4", new object[]
+            {
+                new object[]
+                {
+                    FFITarget.DummyPoint.ByCoordinates(0, 0, 0), FFITarget.DummyPoint.ByCoordinates(1, -1, 0)
+                },
+                new object[]
+                {
+                    FFITarget.DummyPoint.ByCoordinates(1, 0, 0)
+                }
+            });
+        }
+
+        [Test]
         public void TestFilter()
         {
             string code =
@@ -345,7 +394,7 @@ def odd(x)
     return = x % 2 == 1;
 }
 
-pred = _SingleFunctionObject(odd, 1, { }, { }, true);
+pred = Function(odd, 1, { }, { }, true);
 r1 = __Filter(1..10, pred);
 ";
             thisTest.RunScriptSource(code);
@@ -363,7 +412,7 @@ def odd(x)
     return = x % 2 == 1;
 }
 
-pred = _SingleFunctionObject(odd, 1, { }, { }, true);
+pred = Function(odd, 1, { }, { }, true);
 r1 = __Filter({}, pred);
 
 r2 = r1[0];
@@ -390,8 +439,8 @@ def sum(x, y)
     return = x + y;
 }
 
-acc1 = _SingleFunctionObject(mul, 2, { }, { }, true);
-acc2 = _SingleFunctionObject(sum, 2, { }, { }, true);
+acc1 = Function(mul, 2, { }, { }, true);
+acc2 = Function(sum, 2, { }, { }, true);
 
 v1 = __Reduce(acc1, 1, 1..10);
 v2 = __Reduce(acc2, 0, 1..10);
@@ -399,224 +448,6 @@ v2 = __Reduce(acc2, 0, 1..10);
             thisTest.RunScriptSource(code);
             thisTest.Verify("v1", 3628800);
             thisTest.Verify("v2", 55);
-        }
-        [Test]
-        public void Test__GroupByKey1()
-        {
-            string code =
-    @"
-import (""DSCoreNodes.dll"");
-import (""FunctionObject.ds"");
-
-list = {""a"", ""b"", ""c""};
-keys = {""key1"", ""key2"", ""key1""};
-
-result = __GroupByKey(list, keys);
-r1 = result[0];
-r2 = result[1];
-";
-            thisTest.RunScriptSource(code);
-            thisTest.Verify("r1", new object[] { new object[] { "a", "c" }, new object[] { "b" } });
-            thisTest.Verify("r2", new object[] { "key1", "key2" });
-        }
-
-        [Test]
-        public void Test__GroupByKey2()
-        {
-            string code =
-    @"
-import (""DSCoreNodes.dll"");
-import (""FunctionObject.ds"");
-
-list = {""San Francisco"",
-        ""Springfield"",
-        ""Fresno"",
-        ""Berkeley"",
-        ""Fall River"",
-        ""Waltham"",
-        ""Sacramento""};
-
-keys = {""California"",
-        ""Massachusetts"",
-        ""California"",
-        ""California"",
-        ""Massachusetts"",
-        ""Massachusetts"",
-        ""California""};
-
-result = __GroupByKey(list, keys);
-r1 = result[0];
-r2 = result[1];
-";
-            thisTest.RunScriptSource(code);
-            thisTest.Verify("r1", new object[]
-            {
-                new object[] { "San Francisco", "Fresno",  "Berkeley", "Sacramento"}, 
-                new object[] { "Springfield", "Fall River", "Waltham" }
-            });
-            thisTest.Verify("r2", new object[] { "California", "Massachusetts" });
-        }
-
-        [Test]
-        public void Test__GroupByKey3()
-        {
-            string code =
-    @"
-import (""DSCoreNodes.dll"");
-import (""FunctionObject.ds"");
-
-list = {""item1"", ""item2"", ""item1"", ""item3""};
-keys = {""key1"", ""key2"", ""key1""};
-
-result = __GroupByKey(list, keys);
-r1 = result[0];
-r2 = result[1];
-";
-            thisTest.RunScriptSource(code);
-            thisTest.Verify("r1", new object[] { new object[] { "item1", "item1" }, new object[] { "item2" } });
-            thisTest.Verify("r2", new object[] { "key1", "key2" });
-        }
-
-        [Test]
-        public void Test__GroupByKey4()
-        {
-            string code =
-    @"
-import (""DSCoreNodes.dll"");
-import (""FunctionObject.ds"");
-
-list = {""item1""};
-keys = {""key1"", ""key2""};
-
-result = __GroupByKey(list, keys);
-r1 = result[0];
-r2 = result[1];
-";
-            thisTest.RunScriptSource(code);
-            thisTest.Verify("r1", new object[] { new object[] { "item1" } });
-            thisTest.Verify("r2", new object[] { "key1", "key2" });
-        }
-
-        [Test]
-        public void Test__SortByKey1()
-        {
-            string code =
-    @"
-import (""DSCoreNodes.dll"");
-import (""FunctionObject.ds"");
-list = {""item1"", ""item2""};
-keys = {""key2"", ""key1""};
-result = __SortByKey(list, keys);
-r1 = result[0];
-r2 = result[1];
-";
-            thisTest.RunScriptSource(code);
-            thisTest.Verify("r1", new object[] { "item2", "item1" });
-            thisTest.Verify("r2", new object[] { "key1", "key2" });
-        }
-
-        [Test]
-        public void Test__SortByKey2()
-        {
-            string code =
-    @"
-import (""DSCoreNodes.dll"");
-import (""FunctionObject.ds"");
-list = {""item1"", ""item2""};
-keys = {""key1""};
-result = __SortByKey(list, keys);
-r1 = result[0];
-r2 = result[1];
-";
-            thisTest.RunScriptSource(code);
-            thisTest.Verify("r1", null);
-            thisTest.Verify("r2", null);
-        }
-
-        [Test]
-        public void Test__SortByKey3()
-        {
-            string code =
-    @"
-import (""DSCoreNodes.dll"");
-import (""FunctionObject.ds"");
-list = {""item1""};
-keys = {""key1"", ""key2""};
-result = __SortByKey(list, keys);
-r1 = result[0];
-r2 = result[1];
-";
-            thisTest.RunScriptSource(code);
-            thisTest.Verify("r1", null);
-            thisTest.Verify("r2", null);
-        }
-
-        [Test]
-        public void Test__SortByKey4()
-        {
-            string code =
-    @"
-import (""DSCoreNodes.dll"");
-import (""FunctionObject.ds"");
-list = {""Zack"",
-        ""Ian"",
-        ""Neal"",
-        ""Colin"",
-        ""Matt""};
-keys = {""Kron"",
-        ""Keough"",
-        ""Burnham"",
-        ""McCrone"",
-        ""Jezyk""};
-result = __SortByKey(list, keys);
-r1 = result[0];
-r2 = result[1];
-";
-            thisTest.RunScriptSource(code);
-            thisTest.Verify("r1", new object[] { "Neal", "Matt", "Ian", "Zack", "Colin" });
-            thisTest.Verify("r2", new object[] { "Burnham", "Jezyk", "Keough", "Kron", "McCrone" });
-        }
-
-        [Test]
-        public void Test__SortByKey5()
-        {
-            string code =
-    @"
-import (""DSCoreNodes.dll"");
-import (""FunctionObject.ds"");
-list = {""Zack"",
-        ""Ian"",
-        ""Neal"",
-        ""Anna""};
-keys = {-3,
-        1.6,
-        ""abc"",
-        5};
-result = __SortByKey(list, keys);
-r1 = result[0];
-r2 = result[1];
-";
-            thisTest.RunScriptSource(code);
-            thisTest.Verify("r1", new object[] { "Zack", "Ian", "Anna", "Neal" });
-            thisTest.Verify("r2", new object[] { -3, 1.6, 5, "abc" });
-        }
-
-        [Test]
-        public void Test__SortByKey6()
-        {
-            string code =
-    @"
-import (""DSCoreNodes.dll"");
-import (""FunctionObject.ds"");
-list = {1, 2, 3};
-keys = {1.21, 1.20, 1.2001};
-result = __SortByKey(list, keys);
-r1 = result[0];
-r2 = result[1];
-";
-            thisTest.RunScriptSource(code);
-            thisTest.Verify("r1", new object[] { 2, 3, 1 });
-            thisTest.Verify("r2", new object[] { 1.20, 1.2001, 1.21 });
         }
     }
 }

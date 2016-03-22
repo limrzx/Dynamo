@@ -1,8 +1,8 @@
 ﻿using System.IO;
-
+using CoreNodeModels;
 using Dynamo;
-using Dynamo.Models;
-using Dynamo.Nodes;
+using Dynamo.Graph.Nodes.CustomNodes;
+using Dynamo.Graph.Workspaces;
 using Dynamo.Tests;
 
 using NUnit.Framework;

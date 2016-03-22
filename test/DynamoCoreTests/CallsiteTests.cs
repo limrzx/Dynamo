@@ -4,11 +4,10 @@ using System.IO;
 using System.Linq;
 using System.Reflection;
 using System.Runtime.Serialization;
-
+using CoreNodeModels.Input;
 using Dynamo.Engine;
-using Dynamo.Models;
-using Dynamo.Nodes;
-
+using Dynamo.Graph.Nodes.ZeroTouch;
+using Dynamo.Graph.Workspaces;
 using NUnit.Framework;
 
 
@@ -65,7 +64,7 @@ namespace Dynamo.Tests
             OpenChangeAndCheckOrphans("RebindingMultiDimension.dyn", "0..1", 3);
         }
 
-        [Test,Category("Failure")]
+        [Test]
         public void CallSite_MultiDimensionIncreaseDimensionOnOpenAndRun()
         {
             OpenChangeAndCheckOrphans("RebindingMultiDimension.dyn", "0..3", 0);
@@ -85,7 +84,7 @@ namespace Dynamo.Tests
             OpenChangeAndCheckOrphans("RebindingSingleDimension.dyn", "0..1", 1);
         }
 
-        [Test, Category("Failure")]
+        [Test]
         public void Callsite_SingleDimensionIncreaseDimensionOnOpenAndRun()
         {
             OpenChangeAndCheckOrphans("RebindingSingleDimension.dyn", "0..3", 0);
@@ -120,7 +119,7 @@ namespace Dynamo.Tests
             BeginRun();
         }
 
-        [Test, Category("Failure")]
+        [Test]
         public void Callsite_RunWithTraceDataFromUnresolvedNodes_DoesNotCrash()
         {
             var ws = Open<HomeWorkspaceModel>(SampleDirectory, @"en-US\Geometry", "Geometry_Surfaces.dyn");

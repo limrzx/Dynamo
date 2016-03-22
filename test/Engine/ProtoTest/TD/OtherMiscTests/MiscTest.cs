@@ -413,7 +413,7 @@ inputBool = true;
         }
 
         [Test]
-        [Category("DSDefinedClass_Ignored_DSDefinedClassInheritance")]
+        [Ignore][Category("DSDefinedClass_Ignored_DSDefinedClassInheritance")]
         [Category("SmokeTest")]
         [Category("Failure")]
         public void DynamicReferenceResolving_Complex_Case()
@@ -493,7 +493,7 @@ testInFunction2 = foo2(b2); //testInFunction2 = 7;
         }
 
         [Test]
-        [Category("DSDefinedClass_Ignored_DSDefinedClassInheritance")]
+        [Ignore][Category("DSDefinedClass_Ignored_DSDefinedClassInheritance")]
         [Category("SmokeTest")]
         public void DynamicReference_Variable()
         {
@@ -522,7 +522,7 @@ kk = t.k;";
         }
 
         [Test]
-        [Category("DSDefinedClass_Ignored_DSDefinedClassInheritance")]
+        [Ignore][Category("DSDefinedClass_Ignored_DSDefinedClassInheritance")]
         [Category("SmokeTest")]
         public void DynamicReference_FunctionCall()
         {
@@ -550,7 +550,7 @@ testFoo1 = t.foo1(6); // foo1 does not exist in A, function not found warning; t
         }
 
         [Test]
-        [Category("DSDefinedClass_Ignored_DSDefinedClassInheritance")]
+        [Ignore][Category("DSDefinedClass_Ignored_DSDefinedClassInheritance")]
         [Category("SmokeTest")]
         [Category("Failure")]
         public void DynamicReference_FunctionCall_With_Default_Arg()
@@ -700,7 +700,7 @@ p2 = Point.ByCoordinates(0,0,0);";
             string err = "1467130 - Sprint 24 - Rev 2908 - Missing Line number information while throwing warning ";
             string code = @"a=b;";
             thisTest.VerifyRunScriptSource(code, err);
-            TestFrameWork.VerifyBuildWarning(ProtoCore.BuildData.WarningID.kIdUnboundIdentifier);
+            TestFrameWork.VerifyBuildWarning(ProtoCore.BuildData.WarningID.IdUnboundIdentifier);
             //Verification
         }
 
@@ -746,7 +746,7 @@ a=1;
         }
 
         [Test]
-        [Category("DSDefinedClass_Ignored_DSDefinedClassSemantics")]
+        [Ignore][Category("DSDefinedClass_Ignored_DSDefinedClassSemantics")]
         public void GarbageCollection_1467148()
         {
             string code = @"
@@ -957,7 +957,7 @@ return = t;
 
             ExecutionMirror mirror = thisTest.VerifyRunScriptSource(code, errmsg);
 
-            TestFrameWork.VerifyBuildWarning(ProtoCore.BuildData.WarningID.kFunctionNotFound);
+            TestFrameWork.VerifyBuildWarning(ProtoCore.BuildData.WarningID.FunctionNotFound);
         }
 
         [Test]
@@ -978,7 +978,7 @@ return = t;
                                 ";
             string errmsg = "";
             ExecutionMirror mirror = thisTest.VerifyRunScriptSource(code, errmsg);
-            TestFrameWork.VerifyBuildWarning(ProtoCore.BuildData.WarningID.kFunctionNotFound);
+            TestFrameWork.VerifyBuildWarning(ProtoCore.BuildData.WarningID.FunctionNotFound);
         }
     }
 }

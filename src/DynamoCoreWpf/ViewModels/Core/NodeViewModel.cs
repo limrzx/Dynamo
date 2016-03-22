@@ -1,16 +1,19 @@
 using System;
+using System.Collections.Generic;
 using System.Collections.Specialized;
 using System.ComponentModel;
 using System.Linq;
 using System.Collections.ObjectModel;
 using System.Text;
 using System.Text.RegularExpressions;
-
+using Dynamo.Configuration;
 using Dynamo.Engine.CodeGeneration;
 using Dynamo.Models;
-using Dynamo.Nodes;
-
-using System.Windows;
+using System.Windows; 
+using Dynamo.Graph;
+using Dynamo.Graph.Nodes;
+using Dynamo.Graph.Nodes.CustomNodes;
+using Dynamo.Graph.Workspaces; 
 using Dynamo.Selection;
 using Dynamo.Wpf.ViewModels.Core;
 using DynCmd = Dynamo.ViewModels.DynamoViewModel;
@@ -27,10 +30,12 @@ namespace Dynamo.ViewModels
         public delegate void SetToolTipDelegate(string message);
         public delegate void NodeDialogEventHandler(object sender, NodeDialogEventArgs e);
         public delegate void SnapInputEventHandler(PortViewModel portViewModel);
+        public delegate void PreviewPinStatusHandler(bool pinned);
         #endregion
 
         #region events
-        public event SnapInputEventHandler SnapInputEvent;        
+        public event SnapInputEventHandler SnapInputEvent;
+        public event PreviewPinStatusHandler PreviewPinEvent;
         #endregion
 
         #region private members
@@ -38,15 +43,29 @@ namespace Dynamo.ViewModels
         ObservableCollection<PortViewModel> inPorts = new ObservableCollection<PortViewModel>();
         ObservableCollection<PortViewModel> outPorts = new ObservableCollection<PortViewModel>();
         NodeModel nodeLogic;
-        private double zIndex = 3;
+        private int zIndex = Configurations.NodeStartZIndex;
         private string astText = string.Empty;
-
+        private bool isexplictFrozen;
+        private bool canToggleFrozen = true;
         #endregion
 
         #region public members
 
         public readonly DynamoViewModel DynamoViewModel;
         public readonly WorkspaceViewModel WorkspaceViewModel;
+        public readonly Size? PreferredSize;
+
+        private bool previewPinned;
+        public bool PreviewPinned {
+            get { return previewPinned; }
+            set
+            {
+                if (previewPinned == value) return;
+                previewPinned = value;
+                if (PreviewPinEvent != null)
+                    PreviewPinEvent(previewPinned);
+            }
+        }
 
         public NodeModel NodeModel { get { return nodeLogic; } private set { nodeLogic = value; } }
 
@@ -103,18 +122,18 @@ namespace Dynamo.ViewModels
             }
         }
 
-        public bool IsSelectedInput
+        public bool IsSetAsInput
         {
             get
             {
-                return nodeLogic.IsSelectedInput;
+                return nodeLogic.IsSetAsInput;
             }
             set
             {
-                if (nodeLogic.IsSelectedInput != value)
+                if (nodeLogic.IsSetAsInput != value)
                 {
-                    nodeLogic.IsSelectedInput = value;
-                    RaisePropertyChanged("IsSelectedInput");
+                    nodeLogic.IsSetAsInput = value;
+                    RaisePropertyChanged("IsSetAsInput");
                 }
             }
         }
@@ -166,11 +185,28 @@ namespace Dynamo.ViewModels
             }
         }
 
-        public double ZIndex
-         {
+        /// <summary>
+        /// ZIndex is used to order nodes, when some node is clicked.
+        /// This selected node should be moved above others.
+        /// Start value of zIndex is 3, because 1 is for groups and 2 is for connectors.
+        /// Nodes should be always at the top.
+        /// 
+        /// Static is used because every node should know what is the highest z-index right now.
+        /// </summary>
+        internal static int StaticZIndex = Configurations.NodeStartZIndex;
+
+        /// <summary>
+        /// ZIndex represents the order on the z-plane in which nodes appear.
+        /// </summary>
+        public int ZIndex
+        {
             get { return zIndex; }
-            set { zIndex = value; RaisePropertyChanged("ZIndex"); }
-         }
+            set
+            {
+                zIndex = value;
+                RaisePropertyChanged("ZIndex");
+            }
+        }
 
         /// <summary>
         /// Input grid's enabled state is now bound to this property
@@ -326,6 +362,62 @@ namespace Dynamo.ViewModels
             }
         }
 
+        /// <summary>
+        /// Gets a value indicating whether this model is frozen.
+        /// </summary>
+        /// <value>
+        ///   <c>true</c> if this instance is frozen; otherwise, <c>false</c>.
+        /// </value>
+        public bool IsFrozen
+        {
+            get
+            {
+                RaisePropertyChanged("IsFrozenExplicitly");
+                RaisePropertyChanged("CanToggleFrozen");
+                return NodeModel.IsFrozen;
+            }
+            set
+            {
+                NodeModel.IsFrozen = value;                    
+            }
+        }
+        
+        /// <summary>
+        /// A flag indicating whether the node is set to freeze by the user.
+        /// </summary>
+        /// <value>
+        ///  Returns true if the node has been frozen explicitly by the user, otherwise false.
+        /// </value>        
+        public bool IsFrozenExplicitly
+        {
+            get
+            {    
+                //if the node is freeze by the user, then always
+                //check the Freeze property     
+                if (this.NodeLogic.isFrozenExplicitly)
+                {                   
+                    return true;
+                }
+                
+                return false;
+            }             
+        }
+
+        /// <summary>
+        /// A flag indicating whether the underlying NodeModel's IsFrozen property can be toggled.      
+        /// </summary>
+        /// <value>
+        ///  This will return false if this node is not the root of the freeze operation, otherwise it will return 
+        ///  true.
+        /// </value>
+        public bool CanToggleFrozen
+        {
+            get
+            {
+                return !NodeModel.IsAnyUpstreamFrozen();
+            }
+        }
+
         #endregion
 
         #region events
@@ -362,20 +454,22 @@ namespace Dynamo.ViewModels
 
         public NodeViewModel(WorkspaceViewModel workspaceViewModel, NodeModel logic)
         {
-            this.WorkspaceViewModel = workspaceViewModel;
-            this.DynamoViewModel = workspaceViewModel.DynamoViewModel;
-           
+            WorkspaceViewModel = workspaceViewModel;
+            DynamoViewModel = workspaceViewModel.DynamoViewModel;
+
             nodeLogic = logic;
-            
-            //respond to collection changed events to sadd
+            PreviewPinned = logic.PreviewPinned;
+            PreviewPinEvent += logic.SetPinStatus;
+
+            //respond to collection changed events to add
             //and remove port model views
             logic.InPorts.CollectionChanged += inports_collectionChanged;
             logic.OutPorts.CollectionChanged += outports_collectionChanged;
 
             logic.PropertyChanged += logic_PropertyChanged;
 
-            this.DynamoViewModel.Model.PropertyChanged += Model_PropertyChanged;
-            this.DynamoViewModel.Model.DebugSettings.PropertyChanged += DebugSettings_PropertyChanged;
+            DynamoViewModel.Model.PropertyChanged += Model_PropertyChanged;
+            DynamoViewModel.Model.DebugSettings.PropertyChanged += DebugSettings_PropertyChanged;
 
             ErrorBubble = new InfoBubbleViewModel(DynamoViewModel);
             UpdateBubbleContent();
@@ -390,9 +484,18 @@ namespace Dynamo.ViewModels
             {
                 DynamoViewModel.EngineController.AstBuilt += EngineController_AstBuilt;
             }
+
             ShowExecutionPreview = workspaceViewModel.DynamoViewModel.ShowRunPreview;
             IsNodeAddedRecently = true;
             DynamoSelection.Instance.Selection.CollectionChanged += SelectionOnCollectionChanged;
+            ZIndex = ++StaticZIndex;
+        }
+ 
+        public NodeViewModel(WorkspaceViewModel workspaceViewModel, NodeModel logic, Size preferredSize)
+            :this(workspaceViewModel, logic)
+        {
+            // preferredSize is set when a node needs to have a fixed size
+            PreferredSize = preferredSize;
         }
 
         private void SelectionOnCollectionChanged(object sender, NotifyCollectionChangedEventArgs e)
@@ -400,6 +503,9 @@ namespace Dynamo.ViewModels
            CreateGroupCommand.RaiseCanExecuteChanged();
            AddToGroupCommand.RaiseCanExecuteChanged();
            UngroupCommand.RaiseCanExecuteChanged();
+           ToggleIsFrozenCommand.RaiseCanExecuteChanged();
+           RaisePropertyChanged("IsFrozenExplicitly");
+           RaisePropertyChanged("CanToggleFrozen");
         }
 
         void DebugSettings_PropertyChanged(object sender, PropertyChangedEventArgs e)
@@ -479,7 +585,6 @@ namespace Dynamo.ViewModels
                 case "CurrentWorkspace":
                     RaisePropertyChanged("NodeVisibility");
                     break;
-
             }
         }
 
@@ -546,6 +651,9 @@ namespace Dynamo.ViewModels
                 case "CanUpdatePeriodically":
                     RaisePropertyChanged("EnablePeriodicUpdate");
                     RaisePropertyChanged("PeriodicUpdateVisibility");
+                    break;
+                case "IsFrozen":
+                    RaiseFrozenPropertyChanged();
                     break;
             }
         }
@@ -629,12 +737,11 @@ namespace Dynamo.ViewModels
 
         private void SetLacingType(object param)
         {           
-            this.DynamoViewModel.ExecuteCommand(
+            DynamoViewModel.ExecuteCommand(
               new DynamoModel.UpdateModelValueCommand(
-                    System.Guid.Empty, this.NodeModel.GUID, "ArgumentLacing", param.ToString()));
-          
-            DynamoViewModel.UndoCommand.RaiseCanExecuteChanged();
-            DynamoViewModel.RedoCommand.RaiseCanExecuteChanged();
+                    Guid.Empty, NodeModel.GUID, "ArgumentLacing", param.ToString()));
+
+            DynamoViewModel.RaiseCanExecuteUndoRedo();
         }
 
         private bool CanSetLacingType(object param)
@@ -804,8 +911,7 @@ namespace Dynamo.ViewModels
                 new[] { nodeLogic.GUID }, "IsVisible", visibility);
 
             DynamoViewModel.Model.ExecuteCommand(command);
-            DynamoViewModel.UndoCommand.RaiseCanExecuteChanged();
-            DynamoViewModel.RedoCommand.RaiseCanExecuteChanged();
+            DynamoViewModel.RaiseCanExecuteUndoRedo();
         }
 
         private void ToggleIsUpstreamVisible(object parameter)
@@ -816,8 +922,7 @@ namespace Dynamo.ViewModels
                 new[] { nodeLogic.GUID }, "IsUpstreamVisible", visibility);
 
             DynamoViewModel.Model.ExecuteCommand(command);
-            DynamoViewModel.UndoCommand.RaiseCanExecuteChanged();
-            DynamoViewModel.RedoCommand.RaiseCanExecuteChanged();
+            DynamoViewModel.RaiseCanExecuteUndoRedo();
         }
 
         private bool CanVisibilityBeToggled(object parameter)
@@ -946,6 +1051,56 @@ namespace Dynamo.ViewModels
             }
 
             return true;
+        }
+
+        private void ToggleIsFrozen(object parameters)
+        {
+            var node = this.nodeLogic;
+            if (node != null)
+            {
+                var oldFrozen = (!node.isFrozenExplicitly).ToString();
+                var command = new DynamoModel.UpdateModelValueCommand(Guid.Empty,
+                    new[] { node.GUID }, "IsFrozen", oldFrozen);
+
+                DynamoViewModel.Model.ExecuteCommand(command);
+            }
+            else if (DynamoSelection.Instance.Selection.Any())
+            {
+                node = DynamoSelection.Instance.Selection.Cast<NodeModel>().First();
+                node.IsFrozen = !node.IsFrozen;
+            }
+
+            RaiseFrozenPropertyChanged();
+        }
+
+        private bool CanToggleIsFrozen(object parameters)
+        {
+            return DynamoSelection.Instance.Selection.Count() == 1;
+        }
+
+        private void RaiseFrozenPropertyChanged()
+        {            
+            RaisePropertyChanged("IsFrozen");
+            RaisePropertyChangedOnDownStreamNodes();
+        }
+
+        /// <summary>
+        /// When a node is frozen, raise the IsFrozen property changed event on
+        /// all its downstream nodes, to ensure UI updates correctly.
+        /// </summary>
+        private void RaisePropertyChangedOnDownStreamNodes()
+        {
+            HashSet<NodeModel> nodes = new HashSet<NodeModel>();
+            this.nodeLogic.GetDownstreamNodes(this.nodeLogic, nodes);
+
+            foreach (var inode in nodes)
+            {
+                var current = this.WorkspaceViewModel.Nodes.FirstOrDefault(x => x.NodeLogic == inode);
+                if (current != null)
+                {
+                    current.RaisePropertyChanged("IsFrozen");
+                }
+            }
         }
 
         private void UngroupNode(object parameters)

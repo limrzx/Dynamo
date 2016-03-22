@@ -8,6 +8,9 @@ using Dynamo.ViewModels;
 using System.IO;
 using System.Threading;
 using Dynamo.Engine;
+using Dynamo.Graph;
+using Dynamo.Graph.Connectors;
+using Dynamo.Graph.Nodes;
 
 namespace Dynamo.TestInfrastructure
 {
@@ -23,9 +26,9 @@ namespace Dynamo.TestInfrastructure
         {
             string assemblyPath = Assembly.GetExecutingAssembly().Location;
             string assemblyDir = Path.GetDirectoryName(assemblyPath);
-            string pathToNodesDll = assemblyDir + "\\nodes\\DSCoreNodesUI.dll";
+            string pathToNodesDll = assemblyDir + "\\nodes\\CoreNodeModels.dll";
             Assembly assembly = Assembly.LoadFile(pathToNodesDll);
-            Type type = assembly.GetType("DSCoreNodesUI.NumberRange");
+            Type type = assembly.GetType("CoreNodeModels.NumberRange");
 
             return type;
         }
@@ -71,17 +74,7 @@ namespace Dynamo.TestInfrastructure
             writer.WriteLine("### - undo complete");
             writer.Flush();
 
-            DynamoViewModel.UIDispatcher.Invoke(new Action(() =>
-            {
-                DynamoModel.RunCancelCommand runCancel =
-                    new DynamoModel.RunCancelCommand(false, false);
-
-                DynamoViewModel.ExecuteCommand(runCancel);
-            }));
-            while (!DynamoViewModel.HomeSpace.RunSettings.RunEnabled)
-            {
-                Thread.Sleep(10);
-            }
+            ExecuteAndWait();
 
             writer.WriteLine("### - Beginning test of NumberRange");
             if (node.OutPorts.Count > 0)

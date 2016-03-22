@@ -6,7 +6,9 @@ using System.ComponentModel;
 using System.Linq;
 using System.Windows.Input;
 using System.Windows.Media;
+using Dynamo.Configuration;
 using Dynamo.Search;
+using Dynamo.Search.SearchElements;
 using Dynamo.UI;
 using Dynamo.ViewModels;
 using Microsoft.Practices.Prism.Commands;
@@ -101,6 +103,15 @@ namespace Dynamo.Wpf.ViewModels
         private bool isExpanded;
         private bool isSelected;
 
+        public event Action RequestReturnFocusToSearch;
+        private void OnRequestReturnFocusToSearch()
+        {
+            if (RequestReturnFocusToSearch != null)
+            {
+                RequestReturnFocusToSearch();
+            }
+        }
+        
         public event RequestBitmapSourceHandler RequestBitmapSource;
         public void OnRequestBitmapSource(IconRequestEventArgs e)
         {
@@ -395,8 +406,10 @@ namespace Dynamo.Wpf.ViewModels
         {
             var endState = !IsExpanded;
 
-            foreach (var ele in SubCategories.Where(cat => cat.IsExpanded == true))
+            foreach (var ele in SubCategories.Where(cat => cat.IsExpanded))
+            {
                 ele.IsExpanded = false;
+            }
 
             //Walk down the tree expanding anything nested one layer deep
             //this can be removed when we have the hierachy implemented properly
@@ -421,6 +434,8 @@ namespace Dynamo.Wpf.ViewModels
                 //ClassDetails.IsExpanded = IsExpanded;
                 TreeViewItems[0].IsExpanded = IsExpanded;
             }
+
+            OnRequestReturnFocusToSearch();
         }
 
         private void OnCollectionChanged(object sender, NotifyCollectionChangedEventArgs notifyCollectionChangedEventArgs)

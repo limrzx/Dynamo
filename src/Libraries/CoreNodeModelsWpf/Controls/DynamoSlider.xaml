@@ -1,4 +1,4 @@
-﻿<UserControl x:Class="Dynamo.Wpf.Controls.DynamoSlider"
+﻿<UserControl x:Class="CoreNodeModelsWpf.Controls.DynamoSlider"
              xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006" 
@@ -6,6 +6,7 @@
              xmlns:ui1="clr-namespace:Dynamo.UI;assembly=DynamoCoreWpf"
              xmlns:ui2="clr-namespace:Dynamo.UI;assembly=DynamoCore"
              xmlns:nodes1="clr-namespace:Dynamo.Nodes;assembly=DynamoCoreWpf"
+             xmlns:configuration="clr-namespace:Dynamo.Configuration;assembly=DynamoCore"
              mc:Ignorable="d" 
              HorizontalAlignment="Stretch"
              VerticalAlignment="Stretch">
@@ -52,7 +53,7 @@
 
         </Expander>
 
-        <Grid Height="{x:Static ui2:Configurations.PortHeightInPixels}" 
+        <Grid Height="{x:Static configuration:Configurations.PortHeightInPixels}" 
               VerticalAlignment="Top">
 
             <Grid.ColumnDefinitions>

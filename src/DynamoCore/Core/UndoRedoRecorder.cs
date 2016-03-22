@@ -2,7 +2,9 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Xml;
-
+using Dynamo.Graph;
+using Dynamo.Graph.Connectors;
+using Dynamo.Graph.Nodes;
 using Dynamo.Models;
 
 namespace Dynamo.Core
@@ -14,7 +16,7 @@ namespace Dynamo.Core
     /// client to delete, reload or create the corresponding model. To qualify
     /// as an undo client, a class must implement this interface.
     /// </summary>
-    public interface IUndoRedoRecorderClient
+    internal interface IUndoRedoRecorderClient
     {
         /// <summary>
         /// UndoRedoRecorder calls this method to delete a model in the client.
@@ -73,6 +75,7 @@ namespace Dynamo.Core
         private XmlElement currentActionGroup;
         private readonly Stack<XmlElement> undoStack;
         private readonly Stack<XmlElement> redoStack;
+        private HashSet<Guid> offTrackModels;
 
         #endregion
 
@@ -91,6 +94,7 @@ namespace Dynamo.Core
 
             undoStack = new Stack<XmlElement>();
             redoStack = new Stack<XmlElement>();
+            offTrackModels = new HashSet<Guid>();
         }
 
         /// <summary>
@@ -169,6 +173,7 @@ namespace Dynamo.Core
             EnsureValidRecorderStates();
             undoStack.Clear();
             redoStack.Clear();
+            offTrackModels.Clear();
         }
 
         #endregion
@@ -241,6 +246,23 @@ namespace Dynamo.Core
             return PopActionGroupFromUndoStack();
         }
 
+        /// <summary>
+        /// A model is recorded as an off-track object means it is modified
+        /// somewhere else, but that modification operation is not recorded in
+        /// undo/redo stack. UndoRedoRecorder will ignore all excpetions that
+        /// related to this kind of objects during undo/redo.
+        /// 
+        /// For example, a connector that connects to an input port of a custom
+        /// node instance could be deleted because of the removal of that input
+        /// port in custom workspace. As this deletion in the custom workspace 
+        /// is not recorded by UndoRedoRecorder in home workspace, the connector
+        /// should be marked as off-track.
+        /// </summary>
+        /// <param name="modelGuid"></param>
+        public void RecordModelAsOffTrack(Guid modelGuid)
+        {
+            offTrackModels.Add(modelGuid);
+        }
         #endregion
 
         #region Public Class Properties
@@ -363,17 +385,37 @@ namespace Dynamo.Core
             for (int index = actions.Count - 1; index >= 0; index--)
             {
                 var element = actions[index] as XmlElement;
+
                 XmlAttribute actionAttribute = element.Attributes[UserActionAttrib];
                 var modelActionType = (UserAction)Enum.Parse(typeof(UserAction), actionAttribute.Value);
+
                 switch (modelActionType)
                 {
                     // Before undo takes place (to delete the model), the most 
                     // up-to-date model is retrieved and serialized into the 
                     // redo action group so that it can properly be redone later.
                     case UserAction.Creation:
-                        ModelBase toBeDeleted = undoClient.GetModelForElement(element);
-                        RecordActionInternal(newGroup, toBeDeleted, modelActionType);
-                        undoClient.DeleteModel(element);
+                        try
+                        {
+                            ModelBase toBeDeleted = undoClient.GetModelForElement(element);
+                            RecordActionInternal(newGroup, toBeDeleted, modelActionType);
+                            undoClient.DeleteModel(element);
+                        }
+                        catch (ArgumentException e)
+                        {
+                            bool isOffTrackObject = false;
+                            var guidAttribute = element.Attributes["guid"];
+                            if (guidAttribute != null)
+                            {
+                                var guid = Guid.Parse(guidAttribute.Value);
+                                isOffTrackObject = offTrackModels.Contains(guid);
+                            }
+
+                            if (!isOffTrackObject)
+                            {
+                                throw e;
+                            }
+                        }
                         break;
 
                     case UserAction.Modification:

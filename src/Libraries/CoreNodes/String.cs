@@ -4,8 +4,8 @@ using System.Collections.Generic;
 using System.Globalization;
 using System.Linq;
 using Autodesk.DesignScript.Runtime;
+using Dynamo.Graph.Nodes;
 using Dynamo.Models;
-using Dynamo.Nodes;
 
 namespace DSCore
 {
@@ -37,7 +37,7 @@ namespace DSCore
                 return i;
             if (Double.TryParse(str, NumberStyles.Number, CultureInfo.InvariantCulture, out d))
                 return d;
-            throw new ArgumentException("Not a valid number.", "str");
+            throw new ArgumentException(Properties.Resources.StringToNumberInvalidNumberMessage, "str");
         }
 
         /// <summary>

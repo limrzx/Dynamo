@@ -4,8 +4,8 @@ using System.IO;
 using System.Reflection;
 using System.Xml.Linq;
 using System.Xml.XPath;
+using Dynamo.Configuration;
 using Dynamo.Interfaces;
-using Dynamo.UI;
 using DynamoUtilities;
 
 namespace Dynamo.Engine
@@ -51,7 +51,7 @@ namespace Dynamo.Engine
 
             if (ResolveResourceAssembly(assemblyPath, pathManager, useAdditionalPaths, out resourceAssemblyPath))
             {
-                resAssembly = Assembly.LoadFrom(resourceAssemblyPath);
+                resAssembly = Assembly.LoadFile(resourceAssemblyPath);
             }
 
             // We need 'LibraryCustomization' if either one is not 'null'
@@ -107,6 +107,8 @@ namespace Dynamo.Engine
                 var fn = Path.GetFileNameWithoutExtension(assemblyLocation);
                 // First try side-by-side search for customization dll.
                 var dirName = Path.GetDirectoryName(assemblyLocation);
+                if (String.IsNullOrEmpty(dirName)) dirName = Directory.GetCurrentDirectory();
+
                 resourceAssemblyPath = Path.Combine(dirName, fn + Configurations.IconResourcesDLL);
 
                 if (File.Exists(resourceAssemblyPath))

@@ -11,15 +11,22 @@ using System.Reflection;
 using System.Windows;
 using System.Windows.Forms;
 using System.Windows.Threading;
+using Dynamo.Configuration;
 using Dynamo.Engine;
+using Dynamo.Graph;
+using Dynamo.Graph.Annotations;
+using Dynamo.Graph.Connectors;
+using Dynamo.Graph.Nodes;
+using Dynamo.Graph.Workspaces;
 using Dynamo.Interfaces;
 using Dynamo.Models;
 using Dynamo.PackageManager;
 using Dynamo.Selection;
 using Dynamo.Services;
 using Dynamo.UI;
-using Dynamo.UpdateManager;
+using Dynamo.Updates;
 using Dynamo.Utilities;
+using Dynamo.Visualization;
 using Dynamo.Wpf.Interfaces;
 using Dynamo.Wpf.Properties;
 using Dynamo.Wpf.UI;
@@ -28,6 +35,8 @@ using Dynamo.Wpf.ViewModels.Core;
 using Dynamo.Wpf.ViewModels.Watch3D;
 using DynCmd = Dynamo.ViewModels.DynamoViewModel;
 using ISelectable = Dynamo.Selection.ISelectable;
+using Autodesk.DesignScript.Interfaces;
+using Dynamo.Exceptions;
 
 namespace Dynamo.ViewModels
 {
@@ -398,7 +407,7 @@ namespace Dynamo.ViewModels
         {
             get { return BackgroundPreviewViewModel.Active; }
         }
-
+        
         #endregion
 
         public struct StartConfiguration
@@ -489,6 +498,7 @@ namespace Dynamo.ViewModels
 
             BackgroundPreviewViewModel = startConfiguration.Watch3DViewModel;
             BackgroundPreviewViewModel.PropertyChanged += Watch3DViewModelPropertyChanged;
+            WatchHandler.RequestSelectGeometry += BackgroundPreviewViewModel.AddLabelForPath;
             RegisterWatch3DViewModel(BackgroundPreviewViewModel, RenderPackageFactoryViewModel.Factory);
         }
 
@@ -533,8 +543,8 @@ namespace Dynamo.ViewModels
                 case "CanNavigateBackground":
                     if (!BackgroundPreviewViewModel.CanNavigateBackground)
                     {
-                        // Return focus back to Search View (Search Field)
-                        SearchViewModel.OnRequestReturnFocusToSearch(this, new EventArgs());
+                        // Return focus back to Dynamo View
+                        OnRequestReturnFocusToView();
                     }
                     break;
             }
@@ -688,16 +698,10 @@ namespace Dynamo.ViewModels
 
         private void ModelWorkspaceCleared(WorkspaceModel workspace)
         {
-            this.UndoCommand.RaiseCanExecuteChanged();
-            this.RedoCommand.RaiseCanExecuteChanged();
+            RaiseCanExecuteUndoRedo();
 
             // Reset workspace state
-            this.CurrentSpaceViewModel.CancelActiveState();
-        }
-
-        public void ReturnFocusToSearch()
-        {
-            this.SearchViewModel.OnRequestReturnFocusToSearch(null, EventArgs.Empty);
+            CurrentSpaceViewModel.CancelActiveState();
         }
 
         internal void ForceRunExprCmd(object parameters)
@@ -870,6 +874,12 @@ namespace Dynamo.ViewModels
             }
 
             return true;
+        }
+       
+        private void Paste(object parameter)
+        {
+            OnRequestPaste();
+            RaiseCanExecuteUndoRedo();
         }
 
         /// <summary>
@@ -1381,7 +1391,7 @@ namespace Dynamo.ViewModels
         /// </summary>
         private void ShowNewPresetStateDialogAndMakePreset(object parameter)
         {
-            var selectedNodes = GetSelectedInputNodes().ToList();
+            var selectedNodes = GetInputNodesFromSelectionForPresets().ToList();
 
             //If there are NO input nodes then show the error message
             if (!selectedNodes.Any())
@@ -1415,9 +1425,7 @@ namespace Dynamo.ViewModels
 
         private void CreateNodeFromSelection(object parameter)
         {
-            CurrentSpaceViewModel.CollapseNodes(
-                DynamoSelection.Instance.Selection.Where(x => x is NodeModel)
-                    .Select(x => (x as NodeModel)));
+            CurrentSpaceViewModel.CollapseSelectedNodes();
         }
 
 
@@ -1427,13 +1435,15 @@ namespace Dynamo.ViewModels
         }
 
         /// <summary>
-        /// Gets the selected "input" nodes
+        /// Gets the selected nodes that are "input" nodes, and makes an 
+        /// exception for CodeBlockNodes as these are marked false so they 
+        /// do not expose a IsInput checkbox
         /// </summary>
         /// <returns></returns>
-        internal IEnumerable<NodeModel> GetSelectedInputNodes()
+        internal IEnumerable<NodeModel> GetInputNodesFromSelectionForPresets()
         {
             return DynamoSelection.Instance.Selection.OfType<NodeModel>()
-                                .Where(x => x.IsInputNode);
+                                .Where(x => x.IsInputNode || x is CodeBlockNodeModel);
         }
 
         public void ShowSaveDialogIfNeededAndSaveResult(object parameter)
@@ -1494,6 +1504,18 @@ namespace Dynamo.ViewModels
         }
 
         internal bool CanToggleFullscreenWatchShowing(object parameter)
+        {
+            return true;
+        }
+
+        public void ToggleBackgroundGridVisibility(object parameter)
+        {
+            if (BackgroundPreviewViewModel == null || !BackgroundPreviewViewModel.Active) return;
+
+            BackgroundPreviewViewModel.IsGridVisible = !BackgroundPreviewViewModel.IsGridVisible;
+        }
+
+        internal bool CanToggleBackgroundGridVisibility(object parameter)
         {
             return true;
         }
@@ -1756,6 +1778,12 @@ namespace Dynamo.ViewModels
             return ((null == workspace) ? false : workspace.CanRedo);
         }
 
+        internal void RaiseCanExecuteUndoRedo()
+        {
+            UndoCommand.RaiseCanExecuteChanged();
+            RedoCommand.RaiseCanExecuteChanged();
+        }
+
         public void ToggleConsoleShowing(object parameter)
         {
             if (ConsoleHeight == 0)
@@ -1952,11 +1980,18 @@ namespace Dynamo.ViewModels
             DialogResult result = openFileDialog.ShowDialog();
             if (result == DialogResult.OK)
             {
-                foreach (var file in openFileDialog.FileNames)
+                try
                 {
-                    EngineController.ImportLibrary(file);
+                    foreach (var file in openFileDialog.FileNames)
+                    {
+                        EngineController.ImportLibrary(file);
+                    }
+                    SearchViewModel.SearchAndUpdateResults();
                 }
-                SearchViewModel.SearchAndUpdateResults();
+                catch(LibraryLoadFailedException ex)
+                {
+                    System.Windows.MessageBox.Show(String.Format(ex.Message, MessageBoxButtons.OK, MessageBoxIcon.Warning));
+                }
             }
         }
 

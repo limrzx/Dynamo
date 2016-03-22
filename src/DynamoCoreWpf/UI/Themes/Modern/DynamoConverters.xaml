@@ -160,6 +160,7 @@
     <controls:NestedContentMarginConverter x:Key="NestedContentMarginConverter"/>
     <controls:ClassViewMarginConverter x:Key="ClassViewMarginConverter" />
     <controls:ElementGroupToColorConverter x:Key="ElementGroupToColorConverter" />
+    <controls:RgbaStringToBrushConverter x:Key="RgbaStringToBrushConverter" />
     <controls:BooleanToBrushConverter x:Key="FilterIsSelertedCategoryToBrushConverter"
                                       TrueBrush="{StaticResource CommonSidebarTextColor}"
                                       FalseBrush="{StaticResource FilterCategoryIsNotSelectedColor}">
@@ -168,8 +169,20 @@
                                       TrueBrush="{StaticResource FilterIconColor}"
                                       FalseBrush="{StaticResource LibraryItemHostBackground}">
     </controls:BooleanToBrushConverter>
-    <controls:BooleanToBrushConverter x:Key="FilterIsSelertedCheckBoxForegroundConverter"
-                                      TrueBrush="White"
-                                      FalseBrush="{StaticResource SearchDarkGreyTextColor}">
+    <controls:BooleanToBrushConverter x:Key="FilterIsSelertedCategoryForegroundConverter"
+                                      TrueBrush="{StaticResource NodeNameForeground}"
+                                      FalseBrush="{StaticResource NodeCategoryForeground}">
+    </controls:BooleanToBrushConverter>
+    <controls:BooleanToBrushConverter x:Key="CompactLayoutForegroundConverter"
+                                      TrueBrush="{StaticResource UnSelectedLayoutForeground}"
+                                      FalseBrush="{StaticResource NodeNameForeground}">
+    </controls:BooleanToBrushConverter>
+    <controls:BooleanToBrushConverter x:Key="DetailedLayoutForegroundConverter"
+                                      TrueBrush="{StaticResource NodeNameForeground}"
+                                      FalseBrush="{StaticResource UnSelectedLayoutForeground}">
+    </controls:BooleanToBrushConverter>
+    <controls:BooleanToBrushConverter x:Key="PinIconForegroundConverter"
+                                      TrueBrush="{StaticResource PinnedIconForegroundColor}"
+                                      FalseBrush="{StaticResource UnpinnedIconForegroundColor}">
     </controls:BooleanToBrushConverter>
 </ResourceDictionary>

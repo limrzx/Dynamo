@@ -2,21 +2,16 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Xml;
-using System.IO;
-
 using Dynamo.Core;
-using Dynamo.Nodes;
-using Dynamo.Models;
 using Dynamo.Utilities;
-using DSCoreNodesUI;
+using Dynamo.Graph;
 using NUnit.Framework;
-using DoubleSlider = DSCoreNodesUI.Input.DoubleSlider;
 
 namespace Dynamo.Tests
 {
     #region Sample Test Classes
 
-    class DummyModel : Models.ModelBase
+    class DummyModel : ModelBase
     {
         #region Public Class Methods/Properties
 

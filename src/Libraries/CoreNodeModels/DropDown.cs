@@ -3,10 +3,11 @@ using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.Linq;
 using System.Xml;
-using DSCoreNodesUI.Properties;
-using Dynamo.Models;
+using CoreNodeModels.Properties;
+using Dynamo.Graph;
+using Dynamo.Graph.Nodes;
 
-namespace DSCoreNodesUI
+namespace CoreNodeModels
 {
     /// <summary>
     /// A class used to store a name and associated item for a drop down menu
@@ -111,7 +112,12 @@ namespace DSCoreNodesUI
             }
         }
 
-        public static int ParseSelectedIndex(string index, IList<DynamoDropDownItem> items)
+        protected virtual int ParseSelectedIndex(string index, IList<DynamoDropDownItem> items)
+        {
+            return ParseSelectedIndexImpl(index, items);
+        }
+
+        public static int ParseSelectedIndexImpl(string index, IList<DynamoDropDownItem> items)
         {
             int selectedIndex = -1;
 
@@ -135,7 +141,12 @@ namespace DSCoreNodesUI
             return selectedIndex;
         }
 
-        public static string SaveSelectedIndex(int index, IList<DynamoDropDownItem> items )
+        protected virtual string SaveSelectedIndex(int index, IList<DynamoDropDownItem> items )
+        {
+            return SaveSelectedIndexImpl(index, items);
+        }
+
+        public static string SaveSelectedIndexImpl(int index, IList<DynamoDropDownItem> items )
         {
             // If nothing is selected or there are no
             // items in the collection, than return -1
@@ -148,7 +159,7 @@ namespace DSCoreNodesUI
             return string.Format("{0}:{1}", index, XmlEscape(item.Name));
         }
 
-        private static string XmlEscape(string unescaped)
+        protected static string XmlEscape(string unescaped)
         {
             var doc = new XmlDocument();
             XmlNode node = doc.CreateElement("root");
@@ -156,7 +167,7 @@ namespace DSCoreNodesUI
             return node.InnerXml;
         }
 
-        private static string XmlUnescape(string escaped)
+        protected static string XmlUnescape(string escaped)
         {
             var doc = new XmlDocument();
             XmlNode node = doc.CreateElement("root");

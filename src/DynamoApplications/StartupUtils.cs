@@ -2,13 +2,13 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
-using System.Threading.Tasks;
 using Dynamo.Interfaces;
+using Dynamo.Scheduler;
 using DynamoShapeManager;
 using System.Reflection;
 using System.IO;
 using Dynamo.Models;
-using Dynamo.UpdateManager;
+using Dynamo.Updates;
 using Microsoft.Win32;
 using System.Diagnostics;
 using System.Threading;
@@ -150,7 +150,8 @@ namespace Dynamo.Applications
             var versions = new[]
             {
                 LibraryVersion.Version220,
-                LibraryVersion.Version221
+                LibraryVersion.Version221,
+                LibraryVersion.Version222, 
             };
 
             var preloader = new Preloader(rootFolder, versions);
@@ -167,7 +168,7 @@ namespace Dynamo.Applications
         private static IUpdateManager InitializeUpdateManager()
         {
             var cfg = UpdateManagerConfiguration.GetSettings(new SandboxLookUp());
-            var um = new Dynamo.UpdateManager.UpdateManager(cfg);
+            var um = new Dynamo.Updates.UpdateManager(cfg);
             Debug.Assert(cfg.DynamoLookUp != null);
             return um;
         }
@@ -182,12 +183,12 @@ namespace Dynamo.Applications
             var config = new DynamoModel.DefaultStartConfiguration()
                   {
                       GeometryFactoryPath = geometryFactoryPath,
-                      ProcessMode = Core.Threading.TaskProcessMode.Asynchronous
+                      ProcessMode = TaskProcessMode.Asynchronous
                   };
 
             config.UpdateManager = CLImode ? null : InitializeUpdateManager();
             config.StartInTestMode = CLImode ? true : false;
-            config.PathResolver = CLImode ? new CLIPathResolver(preloaderLocation) as IPathResolver : new SandboxPathResolver(preloaderLocation) as IPathResolver ; 
+            config.PathResolver = CLImode ? new CLIPathResolver(preloaderLocation) as IPathResolver : new SandboxPathResolver(preloaderLocation) as IPathResolver ;
 
             var model = DynamoModel.Start(config);
             return model;

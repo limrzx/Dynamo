@@ -1,3 +1,5 @@
+
+[InternalClass]
 class _FunctionObject
 {
     def DoEvaluation(param:var[]..[])
@@ -6,7 +8,8 @@ class _FunctionObject
     }
 }
 
-class _SingleFunctionObject extends _FunctionObject
+[InternalClass]
+class Function extends _FunctionObject
 {
     __functionPointers : function;
     __argumtNumber : int;
@@ -14,7 +17,7 @@ class _SingleFunctionObject extends _FunctionObject
     __hasParamAt : bool[];
     __unpackParams: bool;
     
-    constructor _SingleFunctionObject(fptr : function, 
+    constructor Function(fptr : function, 
                                       argNumber: int, 
                                       paramPositions : int[], 
                                       params : var[]..[],
@@ -84,7 +87,7 @@ class _SingleFunctionObject extends _FunctionObject
                         }
                     }
                 
-                    return = _SingleFunctionObject._SingleFunctionObject(
+                    return = Function.Function(
                                                 __functionPointers,
                                                 __argumtNumber,
                                                 _paramPositions,
@@ -96,6 +99,7 @@ class _SingleFunctionObject extends _FunctionObject
     }
 }
 
+[InternalClass]
 class _ComposedFunctionObject extends _FunctionObject
 {
     __funcs : _FunctionObject[];
@@ -163,7 +167,7 @@ def __ComposeBuffered(funcs: _FunctionObject[], amt: int, arg: var[]..[])
             i = Count(funcs)-1;
             first = funcs[i];
             funcs[i] = __Apply(first, arg);
-            return = _SingleFunctionObject(__ComposeBuffered, 3, { 0, 1 }, { funcs, amt-1, null }, true);
+            return = Function(__ComposeBuffered, 3, { 0, 1 }, { funcs, amt-1, null }, true);
         }
     };
 }
@@ -479,33 +483,7 @@ def SortByFunction(list : var[]..[], func:_FunctionObject)
         {
             _keys[_index] = __Apply(func, list[_index]);
         }
-        return = Sorting.sortByKey(list, _keys)[0];
-    };
-}
-
-def __SortByKey(list : var[]..[], keys : var[]..[])
-{
-    return = [Imperative]
-    {
-        if (list == null || keys == null)
-        {
-            return = null;
-        }
-
-		_countList = Count(list);
-		_countKeys = Count(keys);
-
-		if (_countList != _countKeys)
-        {
-            return = null;
-        }
-
-		sortItems = Sorting.sortByKey(list, keys);
-
-		_sortedList = sortItems[0];
-		_sortedKeys = sortItems[1];
-
-        return = { _sortedList, _sortedKeys };
+        return = Sorting.sortByKey(list, _keys);
     };
 }
 
@@ -630,15 +608,5 @@ def LoopWhile(init: var[]..[], continueWhile: _FunctionObject, loopBody: _Functi
 			init = __Apply(loopBody, init);
 		}
 		return = init;
-	};
-}
-
-def __GroupByKey(list: var[]..[], keys: var[]..[])
-{
-	return = [Imperative]
-	{
-		_sortedList = Sorting.groupByKey(list, keys);
-		_uniqueKeys = Sorting.uniqueItems(keys);
-		return = {_sortedList, _uniqueKeys};
 	};
 }

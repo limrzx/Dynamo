@@ -5,12 +5,14 @@ using System.Windows.Controls;
 using System.Windows.Controls.Primitives;
 using System.Windows.Input;
 using System.Windows.Shapes;
-
+using Dynamo.Graph;
+using Dynamo.Graph.Nodes;
+using Dynamo.Graph.Workspaces;
 using Dynamo.Models;
 using Dynamo.UI;
 using Dynamo.ViewModels;
 
-namespace Dynamo.Wpf.Controls
+namespace CoreNodeModelsWpf.Controls
 {
     /// <summary>
     /// Interaction logic for DynamoSlider.xaml
@@ -29,7 +31,7 @@ namespace Dynamo.Wpf.Controls
 
             slider.PreviewMouseUp += delegate
             {
-                nodeUI.ViewModel.DynamoViewModel.ReturnFocusToSearch();
+                nodeUI.ViewModel.DynamoViewModel.OnRequestReturnFocusToView();
             };
 
         }

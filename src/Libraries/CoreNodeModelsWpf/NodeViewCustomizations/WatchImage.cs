@@ -2,14 +2,14 @@
 using System.ComponentModel;
 using System.Drawing;
 using System.Windows;
-using System.Windows.Media;
+using CoreNodeModels;
 using Dynamo.Controls;
-using Dynamo.Models;
-using Dynamo.Nodes;
+using Dynamo.Graph.Nodes;
 using Dynamo.Utilities;
 using Image = System.Windows.Controls.Image;
+using Dynamo.Wpf;
 
-namespace Dynamo.Wpf.Nodes
+namespace CoreNodeModelsWpf.Nodes
 {
     internal class WatchImageNodeViewCustomization : INodeViewCustomization<WatchImageCore>
     {
@@ -37,6 +37,8 @@ namespace Dynamo.Wpf.Nodes
 
             nodeView.PresentationGrid.Children.Add(image);
             nodeView.PresentationGrid.Visibility = Visibility.Visible;
+
+            HandleMirrorData();
         }
 
         private void NodeModelOnPropertyChanged(object sender, PropertyChangedEventArgs args)
@@ -44,6 +46,11 @@ namespace Dynamo.Wpf.Nodes
             if (args.PropertyName != "CachedValue") 
                 return;
 
+            HandleMirrorData();
+        }
+
+        private void HandleMirrorData()
+        {
             var data = nodeModel.CachedValue;
             if (data == null)
                 return;
@@ -53,7 +60,7 @@ namespace Dynamo.Wpf.Nodes
             var bitmap = data.Data as Bitmap;
             if (bitmap != null)
             {
-                nodeView.Dispatcher.BeginInvoke(new Action<Bitmap>(SetImageSource), new object[] { bitmap });
+                nodeView.Dispatcher.Invoke(new Action<Bitmap>(SetImageSource), new object[] { bitmap });
             }
         }
 

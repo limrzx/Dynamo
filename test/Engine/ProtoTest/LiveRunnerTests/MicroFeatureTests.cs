@@ -35,6 +35,104 @@ namespace ProtoTest.LiveRunner
         }
 
         [Test]
+        public void SimulateCBNExecution()
+        {
+            // DS code in a CBN node
+            string code = @"a = 10;";
+            
+            // Generate a GUID for the CBN
+            Guid guid = System.Guid.NewGuid();
+
+            // Build data structure that contains the DS code in the CBN
+            // This simulates Dynamo generating the CBN node data
+            List<Subtree> added = new List<Subtree>();
+            added.Add(ProtoTestFx.TD.TestFrameWork.CreateSubTreeFromCode(guid, code));
+            var syncData = new GraphSyncData(null, added, null);
+
+            // Sending the CBN node data to the VM
+            // Execute the DS code
+            liveRunner.UpdateGraph(syncData);
+
+            // Verify the CBN result
+            AssertValue("a", 10);
+        }
+
+
+        [Test]
+        public void SimulateConnectedCBNExecution()
+        {
+            // Simulate 2 CBNs where one is connected to the other
+            // [a = 1]----->[x = a]
+            List<string> codes = new List<string>() 
+            {
+                @"a = 10;", // CBN 1 contents
+                @"x = a;"   // CBN 2 contents
+            };
+
+            // Simulate 2 CBNs
+            Guid cbnGuid1 = System.Guid.NewGuid(); 
+            Guid cbnGuid2 = System.Guid.NewGuid(); 
+            List<Subtree> added = new List<Subtree>();
+            added.Add(ProtoTestFx.TD.TestFrameWork.CreateSubTreeFromCode(cbnGuid1, codes[0]));
+            added.Add(ProtoTestFx.TD.TestFrameWork.CreateSubTreeFromCode(cbnGuid2, codes[1]));
+            var syncData = new GraphSyncData(null, added, null);
+
+            // Sending the CBN node data to the VM
+            // Execute the DS code
+            liveRunner.UpdateGraph(syncData);
+
+            // Verify the values of the variables in the CBNs
+            AssertValue("a", 10);
+            AssertValue("x", 10);
+        }
+
+
+        [Test]
+        public void SimulateConnectedCBNReExecution()
+        {
+            // Simulate 2 CBNs where one is connected to the other
+            // [a = 1]----->[x = a]
+            //
+            // Modify CBN 1
+            // [a = 10]----->[x = a]
+            List<string> codes = new List<string>() 
+            {
+                @"a = 10;", // CBN 1 contents
+                @"x = a;",  // CBN 2 contents
+                @"a = 20;"  // CBN 1 modified contents
+            };
+
+            // Simulate 2 CBNs
+            Guid cbnGuid1 = System.Guid.NewGuid();
+            Guid cbnGuid2 = System.Guid.NewGuid();
+            List<Subtree> added = new List<Subtree>();
+            added.Add(ProtoTestFx.TD.TestFrameWork.CreateSubTreeFromCode(cbnGuid1, codes[0]));
+            added.Add(ProtoTestFx.TD.TestFrameWork.CreateSubTreeFromCode(cbnGuid2, codes[1]));
+            var syncData = new GraphSyncData(null, added, null);
+
+            // Sending the CBN node data to the VM
+            liveRunner.UpdateGraph(syncData);
+
+            // Verify the values of the variables in the CBNs
+            AssertValue("a", 10);
+            AssertValue("x", 10);
+
+
+            // Modify the CBN 1 only
+            List<Subtree> modified = new List<Subtree>();
+            Subtree subtree = ProtoTestFx.TD.TestFrameWork.CreateSubTreeFromCode(cbnGuid1, codes[2]);
+            modified.Add(subtree);
+            syncData = new GraphSyncData(null, null, modified);
+
+            // Sending the CBN node data to the VM
+            liveRunner.UpdateGraph(syncData);
+
+            // Verify that both variables have been modified
+            AssertValue("a", 20);
+            AssertValue("x", 20);
+        }
+
+        [Test]
         public void GraphILTest_Assign01()
         {
             // Build the AST trees
@@ -668,9 +766,9 @@ namespace ProtoTest.LiveRunner
             // Build the AST trees
             // x = 1..10;
             ProtoCore.AST.AssociativeAST.RangeExprNode rangeExpr = new ProtoCore.AST.AssociativeAST.RangeExprNode();
-            rangeExpr.FromNode = new ProtoCore.AST.AssociativeAST.IntNode(0);
-            rangeExpr.ToNode = new ProtoCore.AST.AssociativeAST.IntNode(5);
-            rangeExpr.StepNode = new ProtoCore.AST.AssociativeAST.IntNode(1);
+            rangeExpr.From = new ProtoCore.AST.AssociativeAST.IntNode(0);
+            rangeExpr.To = new ProtoCore.AST.AssociativeAST.IntNode(5);
+            rangeExpr.Step = new ProtoCore.AST.AssociativeAST.IntNode(1);
             ProtoCore.AST.AssociativeAST.BinaryExpressionNode assign = new ProtoCore.AST.AssociativeAST.BinaryExpressionNode(
                 new ProtoCore.AST.AssociativeAST.IdentifierNode("a"),
                 rangeExpr,
@@ -2243,7 +2341,7 @@ r = Equals(x, {41, 42});
             liveRunner.ResetVMAndResyncGraph(new List<string> { "FunctionObject.ds" });
             string code = @"
  def foo(x,y ) { return = x + y; }
- f = _SingleFunctionObject(foo, 2, {1}, {null, 42}, true); r = __Apply(f, 3);
+ f = Function(foo, 2, {1}, {null, 42}, true); r = __Apply(f, 3);
  ";
 
             Guid guid = System.Guid.NewGuid();
@@ -3988,7 +4086,7 @@ OUT = 100"", {""IN""}, {{}}); x = x;"
             Guid guid2 = System.Guid.NewGuid();
             Subtree cbnPt = ProtoTestFx.TD.TestFrameWork.CreateSubTreeFromCode(guid2, codes[2]);
             Subtree cbnDel = ProtoTestFx.TD.TestFrameWork.CreateSubTreeFromCode(guid2,
-                "v0 = _SingleFunctionObject(FFITarget.DummyPoint.ByCoordinates, 3, {}, {null, null, null}, true);");
+                "v0 = Function(FFITarget.DummyPoint.ByCoordinates, 3, {}, {null, null, null}, true);");
 
             added.Add(cbnPt);
 
@@ -4106,7 +4204,7 @@ OUT = 100"", {""IN""}, {{}}); x = x;"
             Guid guid2 = System.Guid.NewGuid();
             Subtree cbnPt = ProtoTestFx.TD.TestFrameWork.CreateSubTreeFromCode(guid2, codes[2]);
             Subtree cbnDel = ProtoTestFx.TD.TestFrameWork.CreateSubTreeFromCode(guid2,
-                "v0 = _SingleFunctionObject(FFITarget.DummyPoint.ByCoordinates, 3, {}, {null, null, null}, true);");
+                "v0 = Function(FFITarget.DummyPoint.ByCoordinates, 3, {}, {null, null, null}, true);");
 
             added.Add(cbnPt);
 
@@ -4178,7 +4276,7 @@ OUT = 100"", {""IN""}, {{}}); x = x;"
 
             ProtoCore.Mirror.RuntimeMirror mirror = liveRunner.InspectNodeValue("i");
             StackValue value = mirror.GetData().GetStackValue();
-            Assert.AreEqual(value.opdata, 1);
+            Assert.AreEqual(value.IntegerValue, 1);
         }
 
         [Test]
@@ -5709,9 +5807,9 @@ k = __TryGetValueFromNestedDictionaries(i, ""a"");
 ,
 
 @"
-partialVar = _SingleFunctionObject(foosa, 2, {0}, {x, null}, true);
-j = _SingleFunctionObject(__ComposeBuffered, 3, {0, 1}, {{_SingleFunctionObject(__GetOutput, 2, {1}, {null, ""b""}, true), partialVar}, 1, null}, true);
-i_out1 = _SingleFunctionObject(__ComposeBuffered, 3, {0, 1}, {{_SingleFunctionObject(__GetOutput, 2, {1}, {null, ""a""}, true), partialVar}, 1, null}, true);
+partialVar = Function(foosa, 2, {0}, {x, null}, true);
+j = Function(__ComposeBuffered, 3, {0, 1}, {{Function(__GetOutput, 2, {1}, {null, ""b""}, true), partialVar}, 1, null}, true);
+i_out1 = Function(__ComposeBuffered, 3, {0, 1}, {{Function(__GetOutput, 2, {1}, {null, ""a""}, true), partialVar}, 1, null}, true);
 i = {};
 i[""b""] = j;
 i[""a""] = k;

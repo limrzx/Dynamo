@@ -1,11 +1,13 @@
 ﻿using System.Collections.Generic;
 using System.IO;
 using System.Linq;
-using Dynamo.Nodes;
 using NUnit.Framework;
-using DSCoreNodesUI;
 using System.Xml;
-
+using CoreNodeModels;
+using CoreNodeModels.Input;
+using CoreNodeModels.Logic;
+using Dynamo.Graph.Nodes;
+using Dynamo.Graph.Nodes.ZeroTouch;
 using PythonNodeModels;
 
 namespace Dynamo.Tests
@@ -55,6 +57,12 @@ namespace Dynamo.Tests
         public void TestMigration_Core_Input()
         {
             TestMigration("TestMigration_Core_Input.dyn");
+        }
+
+        [Test]
+        public void TestMigration_DSCoreNodesUI_to_CoreNodeModels()
+        {
+            TestMigration("TestMigration_DSCoreNodesUI_to_CoreNodeModels.dyn");
         }
 
         [Test]
@@ -286,11 +294,11 @@ namespace Dynamo.Tests
             OpenModel(GetDynPath("TestAnd.dyn"));
 
             var workspace = CurrentDynamoModel.CurrentWorkspace;
-            var logicn1 = workspace.NodeFromWorkspace<DSCore.Logic.And>(
+            var logicn1 = workspace.NodeFromWorkspace<And>(
                 "0ac391e1-d11a-40ed-96b2-d3aabbdad5c7");
-            var logicn2 = workspace.NodeFromWorkspace<DSCore.Logic.And>(
+            var logicn2 = workspace.NodeFromWorkspace<And>(
                 "0dff8bbb-6a02-444c-8c96-c44c6a248357");
-            var logicn3 = workspace.NodeFromWorkspace<DSCore.Logic.And>(
+            var logicn3 = workspace.NodeFromWorkspace<And>(
                  "4a61ddb0-999d-412d-9330-52f0a982b214");
 
             Assert.AreEqual(5, workspace.Nodes.Count());
@@ -312,11 +320,11 @@ namespace Dynamo.Tests
             OpenModel(GetDynPath("TestAnd_NumberInput.dyn"));
 
             var workspace = CurrentDynamoModel.CurrentWorkspace;
-            var logicn1 = workspace.NodeFromWorkspace<DSCore.Logic.And>(
+            var logicn1 = workspace.NodeFromWorkspace<And>(
                 "0ac391e1-d11a-40ed-96b2-d3aabbdad5c7");
-            var logicn2 = workspace.NodeFromWorkspace<DSCore.Logic.And>(
+            var logicn2 = workspace.NodeFromWorkspace<And>(
                 "0dff8bbb-6a02-444c-8c96-c44c6a248357");
-            var logicn3 = workspace.NodeFromWorkspace<DSCore.Logic.And>(
+            var logicn3 = workspace.NodeFromWorkspace<And>(
                  "4a61ddb0-999d-412d-9330-52f0a982b214");
 
             Assert.AreEqual(5, workspace.Nodes.Count());
@@ -338,11 +346,11 @@ namespace Dynamo.Tests
             OpenModel(GetDynPath("TestOr.dyn"));
 
             var workspace = CurrentDynamoModel.CurrentWorkspace;
-            var logicn1 = workspace.NodeFromWorkspace<DSCore.Logic.Or>(
+            var logicn1 = workspace.NodeFromWorkspace<Or>(
                 "64cfe13f-370c-446e-9f51-58d60278cdff");
-            var logicn2 = workspace.NodeFromWorkspace<DSCore.Logic.Or>(
+            var logicn2 = workspace.NodeFromWorkspace<Or>(
                 "a0b23231-737f-44f6-aa12-640ee5390fa5");
-            var logicn3 = workspace.NodeFromWorkspace<DSCore.Logic.Or>(
+            var logicn3 = workspace.NodeFromWorkspace<Or>(
                  "60a2b505-f173-4f65-a42e-cdd3708900f8");
 
             Assert.AreEqual(5, workspace.Nodes.Count());
@@ -364,11 +372,11 @@ namespace Dynamo.Tests
             OpenModel(GetDynPath("TestOr_NumberInput.dyn"));
 
             var workspace = CurrentDynamoModel.CurrentWorkspace;
-            var logicn1 = workspace.NodeFromWorkspace<DSCore.Logic.Or>(
+            var logicn1 = workspace.NodeFromWorkspace<Or>(
                 "64cfe13f-370c-446e-9f51-58d60278cdff");
-            var logicn2 = workspace.NodeFromWorkspace<DSCore.Logic.Or>(
+            var logicn2 = workspace.NodeFromWorkspace<Or>(
                 "a0b23231-737f-44f6-aa12-640ee5390fa5");
-            var logicn3 = workspace.NodeFromWorkspace<DSCore.Logic.Or>(
+            var logicn3 = workspace.NodeFromWorkspace<Or>(
                  "60a2b505-f173-4f65-a42e-cdd3708900f8");
 
             Assert.AreEqual(5, workspace.Nodes.Count());
@@ -1077,9 +1085,9 @@ namespace Dynamo.Tests
             OpenModel(GetDynPath("TestIf.dyn"));
 
             var workspace = CurrentDynamoModel.CurrentWorkspace;
-            var logicn1 = workspace.NodeFromWorkspace<DSCoreNodesUI.Logic.If>(
+            var logicn1 = workspace.NodeFromWorkspace<If>(
                 "c3685d47-d29e-4015-83d1-4b7e20274c0e");
-            var logicn2 = workspace.NodeFromWorkspace<DSCoreNodesUI.Logic.If>(
+            var logicn2 = workspace.NodeFromWorkspace<If>(
                 "274166dc-4c76-4e42-8856-817978a0dd7c");
 
             Assert.AreEqual(6, workspace.Nodes.Count());
@@ -1099,17 +1107,17 @@ namespace Dynamo.Tests
             OpenModel(GetDynPath("TestListCreate.dyn"));
 
             var workspace = CurrentDynamoModel.CurrentWorkspace;
-            var listn1 = workspace.NodeFromWorkspace<DSCoreNodesUI.CreateList>(
+            var listn1 = workspace.NodeFromWorkspace<CreateList>(
                 "db161881-4239-408c-9ab2-d507fcb4d25f");
-            var listn2 = workspace.NodeFromWorkspace<DSCoreNodesUI.CreateList>(
+            var listn2 = workspace.NodeFromWorkspace<CreateList>(
                 "f336c24a-3617-4da4-ace2-d0bd5fe02ebc");
-            var listn3 = workspace.NodeFromWorkspace<DSCoreNodesUI.CreateList>(
+            var listn3 = workspace.NodeFromWorkspace<CreateList>(
                 "ec723754-21fe-48bc-98ca-d8231e6879af");
-            var listn4 = workspace.NodeFromWorkspace<DSCoreNodesUI.CreateList>(
+            var listn4 = workspace.NodeFromWorkspace<CreateList>(
                 "82a91a49-0c3b-4ed3-851d-ffe9d64593ea");
-            var listn5 = workspace.NodeFromWorkspace<DSCoreNodesUI.CreateList>(
+            var listn5 = workspace.NodeFromWorkspace<CreateList>(
                 "9bb7f4ae-3ace-43c4-ab91-2cc6126975c1");
-            var listn6 = workspace.NodeFromWorkspace<DSCoreNodesUI.CreateList>(
+            var listn6 = workspace.NodeFromWorkspace<CreateList>(
                 "e8f77740-93b5-4129-9cf2-9ae7b4a0aa06");
 
             Assert.AreEqual(12, workspace.Nodes.Count());
@@ -1600,11 +1608,11 @@ namespace Dynamo.Tests
             OpenModel(GetDynPath("TestNewList.dyn"));
 
             var workspace = CurrentDynamoModel.CurrentWorkspace;
-            var listn1 = workspace.NodeFromWorkspace<DSCoreNodesUI.CreateList>(
+            var listn1 = workspace.NodeFromWorkspace<CreateList>(
                 "ff8f5f64-c9f3-4814-896a-6ef679a35275");
-            var listn2 = workspace.NodeFromWorkspace<DSCoreNodesUI.CreateList>(
+            var listn2 = workspace.NodeFromWorkspace<CreateList>(
                 "2d58dbc4-62ad-4a12-974b-52d5986053b5");
-            var listn3 = workspace.NodeFromWorkspace<DSCoreNodesUI.CreateList>(
+            var listn3 = workspace.NodeFromWorkspace<CreateList>(
                 "0c98e395-e2f4-49c1-abda-d1bcb3c24cbd");
 
             Assert.AreEqual(10, workspace.Nodes.Count());
@@ -1911,7 +1919,7 @@ namespace Dynamo.Tests
             Assert.AreEqual(4, workspace.Nodes.Count());
             Assert.AreEqual(3, workspace.Connectors.Count());
 
-            var path = workspace.NodeFromWorkspace<Dynamo.Nodes.StringInput>("1651f446-1b0f-4d5b-be59-c59bf9f80142");
+            var path = workspace.NodeFromWorkspace<StringInput>("1651f446-1b0f-4d5b-be59-c59bf9f80142");
             string fullPath = Path.Combine(TempFolder, "filewriter.txt");
             path.Value = fullPath;
 
@@ -1928,11 +1936,22 @@ namespace Dynamo.Tests
         }
 
         [Test]
+        public void TestMigration_GroupByKeyUI()
+        {
+            TestMigration("TestMigration_GroupByKeyUI.dyn");
+        }
+
+        [Test]
         public void TestMigration_SortByKey()
         {
             TestMigration("TestMigration_SortByKey.dyn");
         }
 
+        [Test]
+        public void TestMigration_SortByKeyUI()
+        {
+            TestMigration("TestMigration_SortByKeyUI.dyn");
+        }
 
         #endregion
 
@@ -1950,7 +1969,7 @@ namespace Dynamo.Tests
             Assert.AreEqual(5, workspace.Connectors.Count());
 
             // check that no nodes are migrated to dummy nodes
-            Assert.AreEqual(0, workspace.Nodes.AsQueryable().Count(x => x is Dynamo.Nodes.DummyNode));
+            Assert.AreEqual(0, workspace.Nodes.AsQueryable().Count(x => x is DummyNode));
 
             // check that the node is migrated to a DSFunction nicknamed "ReferencePoint.ByPoint"
             StringAssert.Contains("Reference", workspace.NodeFromWorkspace<DSFunction>(
@@ -1969,7 +1988,7 @@ namespace Dynamo.Tests
             Assert.AreEqual(5, workspace.Connectors.Count());
 
             // check that no nodes are migrated to dummy nodes
-            Assert.AreEqual(0, workspace.Nodes.AsQueryable().Count(x => x is Dynamo.Nodes.DummyNode));
+            Assert.AreEqual(0, workspace.Nodes.AsQueryable().Count(x => x is DummyNode));
 
             // check that the node is migrated to a DSFunction nicknamed "FamilyInstance.ByPoint"
             StringAssert.Contains("Instance", workspace.NodeFromWorkspace<DSFunction>(
@@ -1988,7 +2007,7 @@ namespace Dynamo.Tests
             Assert.AreEqual(5, workspace.Connectors.Count());
 
             // check that no nodes are migrated to dummy nodes
-            Assert.AreEqual(0, workspace.Nodes.AsQueryable().Count(x => x is Dynamo.Nodes.DummyNode));
+            Assert.AreEqual(0, workspace.Nodes.AsQueryable().Count(x => x is DummyNode));
 
             // check that the node is migrated to a DSFunction nicknamed "ModelCurve.ByCurve"
             StringAssert.Contains("Model", workspace.NodeFromWorkspace<DSFunction>(
@@ -2006,7 +2025,7 @@ namespace Dynamo.Tests
             Assert.AreEqual(6, workspace.Connectors.Count());
 
             // check that no nodes are migrated to dummy nodes
-            Assert.AreEqual(0, workspace.Nodes.AsQueryable().Count(x => x is Dynamo.Nodes.DummyNode));
+            Assert.AreEqual(0, workspace.Nodes.AsQueryable().Count(x => x is DummyNode));
 
             // check that the node is migrated to a PythonNode which retains the old script
             StringAssert.Contains("OUT = OUT", workspace.NodeFromWorkspace<PythonNode>(
@@ -2024,7 +2043,7 @@ namespace Dynamo.Tests
             Assert.AreEqual(6, workspace.Connectors.Count());
 
             // check that no nodes are migrated to dummy nodes
-            Assert.AreEqual(0, workspace.Nodes.AsQueryable().Count(x => x is Dynamo.Nodes.DummyNode));
+            Assert.AreEqual(0, workspace.Nodes.AsQueryable().Count(x => x is DummyNode));
 
             // check that some of the nodes are Excel nodes
             Assert.AreEqual(4, workspace.Nodes.AsQueryable().Count(x => x.NickName.Contains("Excel")));
@@ -2057,8 +2076,8 @@ namespace Dynamo.Tests
                 Assert.Fail("the content of the unresolved node has been changed after saving");
             }
 
-            oldNodes = docOld.GetElementsByTagName("Dynamo.Nodes.DSFunction");
-            newNodes = docNew.GetElementsByTagName("Dynamo.Nodes.DSFunction");
+            oldNodes = docOld.GetElementsByTagName("Dynamo.Graph.Nodes.ZeroTouch.DSFunction");
+            newNodes = docNew.GetElementsByTagName("Dynamo.Graph.Nodes.ZeroTouch.DSFunction");
             if (!oldNodes[0].InnerXml.Equals(newNodes[0].InnerXml))
             {
                 Assert.Fail("the content of the unresolved node has been changed after saving");
@@ -2090,15 +2109,15 @@ namespace Dynamo.Tests
             XmlDocument docNew = new XmlDocument();
             docNew.Load(newPath);
 
-            XmlNodeList oldNodes = docOld.GetElementsByTagName("Dynamo.Nodes.Now");
-            XmlNodeList newNodes = docNew.GetElementsByTagName("Dynamo.Nodes.Now");
+            XmlNodeList oldNodes = docOld.GetElementsByTagName("Dynamo.Graph.Nodes.Now");
+            XmlNodeList newNodes = docNew.GetElementsByTagName("Dynamo.Graph.Nodes.Now");
             if (!oldNodes[0].InnerXml.Equals(newNodes[0].InnerXml))
             {
                 Assert.Fail("the content of the deprecated node has been changed after saving");
             }
 
-            oldNodes = docOld.GetElementsByTagName("Dynamo.Nodes.Future");
-            newNodes = docNew.GetElementsByTagName("Dynamo.Nodes.Future");
+            oldNodes = docOld.GetElementsByTagName("Dynamo.Graph.Nodes.Future");
+            newNodes = docNew.GetElementsByTagName("Dynamo.Graph.Nodes.Future");
             if (!oldNodes[0].InnerXml.Equals(newNodes[0].InnerXml))
             {
                 Assert.Fail("the content of the deprecated node has been changed after saving");
@@ -2131,7 +2150,7 @@ namespace Dynamo.Tests
             int unresolvedNodeCount = 0;
             string str = "\n";
 
-            foreach (var node in nodes.OfType<Dynamo.Nodes.DummyNode>())
+            foreach (var node in nodes.OfType<DummyNode>())
             {
                 if (node.NodeNature == DummyNode.Nature.Unresolved)
                 {

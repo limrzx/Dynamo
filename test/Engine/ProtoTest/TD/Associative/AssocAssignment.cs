@@ -46,7 +46,7 @@ namespace ProtoTest.TD.Associative
 }";
             ExecutionMirror mirror = thisTest.RunScriptSource(src);
             Assert.IsTrue(mirror.GetValue("a").DsasmValue.IsNull);
-            TestFrameWork.VerifyBuildWarning(ProtoCore.BuildData.WarningID.kIdUnboundIdentifier);
+            TestFrameWork.VerifyBuildWarning(ProtoCore.BuildData.WarningID.IdUnboundIdentifier);
         }
 
         [Test]
@@ -194,7 +194,7 @@ e;
         }
 
         [Test]
-        [Category("DSDefinedClass_Ignored")]
+        [Ignore][Category("DSDefinedClass_Ignored")]
         [Category("SmokeTest")]
         public void T11_TestInClassScope()
         {
@@ -880,7 +880,7 @@ _c;
 }";
             ExecutionMirror mirror = thisTest.RunScriptSource(src);
             Assert.IsTrue(mirror.GetValue("a").DsasmValue.IsNull);
-            TestFrameWork.VerifyBuildWarning(ProtoCore.BuildData.WarningID.kIdUnboundIdentifier);
+            TestFrameWork.VerifyBuildWarning(ProtoCore.BuildData.WarningID.IdUnboundIdentifier);
         }
 
         [Test]
@@ -1119,12 +1119,11 @@ b = a * 3;
         [Category("SmokeTest")]
         public void T51_Using_Special_Characters_In_Identifiers()
         {
-            // Assert.Fail("1465125 - Sprint 21 : rev 2294 : @ is not allowed as a starting symbol for identifiers ");
             string code = @"
-@a = 1;
+a = 1;
 ";
             ExecutionMirror mirror = thisTest.RunScriptSource(code);
-            thisTest.Verify("@a", 1);
+            thisTest.Verify("a", 1);
         }
 
         [Test]
@@ -1323,7 +1322,7 @@ y1 = a..b..2;
         }
 
         [Test]
-        [Category("DSDefinedClass_Ignored")]
+        [Ignore][Category("DSDefinedClass_Ignored")]
         [Category("ModifierBlock")] 
         public void T58_Modifier_Block_On_User_Defined_Classes()
         {
@@ -1504,7 +1503,7 @@ if(c < 1)
         }
 
         [Test]
-        [Category("DSDefinedClass_Ignored")]
+        [Ignore][Category("DSDefinedClass_Ignored")]
         public void T60_Defect_1467525_5()
         {
             String code =
@@ -1530,7 +1529,7 @@ class A
         }
 
         [Test]
-        [Category("DSDefinedClass_Ignored")]
+        [Ignore][Category("DSDefinedClass_Ignored")]
         public void T60_Defect_1467525_6()
         {
             String code =
@@ -1611,7 +1610,7 @@ test = foo();
         }
 
         [Test]
-        [Category("DSDefinedClass_Ignored")]
+        [Ignore][Category("DSDefinedClass_Ignored")]
         public void T61_Defect_1467546_4()
         {
             String code =
@@ -1635,7 +1634,7 @@ test = A.foo();
         }
 
         [Test]
-        [Category("DSDefinedClass_Ignored")]
+        [Ignore][Category("DSDefinedClass_Ignored")]
         public void T61_Defect_1467546_5()
         {
             String code =
@@ -1699,7 +1698,7 @@ b = a + 1;
         }
 
         [Test]
-        [Category("DSDefinedClass_Ignored")]
+        [Ignore][Category("DSDefinedClass_Ignored")]
         public void T61_Defect_1467546_8()
         {
             String code =

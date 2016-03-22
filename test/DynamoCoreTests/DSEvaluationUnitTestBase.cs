@@ -3,7 +3,7 @@ using System.Collections;
 using System.Collections.Generic;
 using System.Globalization;
 using System.Linq;
-
+using Dynamo.Graph.Nodes;
 using Dynamo.Models;
 
 using NUnit.Framework;
@@ -45,7 +45,7 @@ namespace Dynamo.Tests
         {
             var nodes = GetModel().CurrentWorkspace.Nodes;
 
-            var dummyNodes = nodes.OfType<Dynamo.Nodes.DummyNode>();
+            var dummyNodes = nodes.OfType<DummyNode>();
             string logs = string.Empty;
             foreach (var node in dummyNodes)
             {
@@ -180,6 +180,10 @@ namespace Dynamo.Tests
                 {
                     Assert.Fail(e.Message);
                 }
+            }
+            else if (data.IsPointer && data.Class.ClassName == "Function")
+            {
+                Assert.AreEqual(data.Class.ClassName, value);
             }
             else
                 Assert.AreEqual(value, data.Data);

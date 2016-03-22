@@ -4,11 +4,13 @@ using System.IO;
 using System.Linq;
 using System.Reflection;
 using System.Threading;
-using Dynamo;
+using Dynamo.Configuration;
 using Dynamo.Controls;
+using Dynamo.Graph.Nodes;
 using Dynamo.Models;
+using Dynamo.Scheduler;
 using Dynamo.ViewModels;
-using Dynamo.Wpf.ViewModels.Watch3D;
+using DynamoCoreWpfTests.Utility;
 using DynamoShapeManager;
 using NUnit.Framework;
 using TestServices;
@@ -64,7 +66,7 @@ namespace DynamoCoreWpfTests
                     StartInTestMode = true,
                     PathResolver = pathResolver,
                     GeometryFactoryPath = preloader.GeometryFactoryPath,
-                    ProcessMode = Dynamo.Core.Threading.TaskProcessMode.Synchronous
+                    ProcessMode = TaskProcessMode.Synchronous
                 });
 
             ViewModel = DynamoViewModel.Start(
@@ -178,6 +180,24 @@ namespace DynamoCoreWpfTests
 
             if (!Directory.Exists(TempFolder))
                 Directory.CreateDirectory(TempFolder);
+        }
+
+        public NodeView NodeViewOf<T>() where T : NodeModel
+        {
+            var nodeViews = View.NodeViewsInFirstWorkspace();
+            var nodeViewsOfType = nodeViews.OfNodeModelType<T>();
+            Assert.AreEqual(1, nodeViewsOfType.Count(), "Expected a single NodeView of provided type in the workspace!");
+
+            return nodeViewsOfType.First();
+        }
+
+        public NodeView NodeViewWithGuid(string guid)
+        {
+            var nodeViews = View.NodeViewsInFirstWorkspace();
+            var nodeViewsOfType = nodeViews.Where(x => x.ViewModel.NodeLogic.GUID.ToString() == guid);
+            Assert.AreEqual(1, nodeViewsOfType.Count(), "Expected a single NodeView with guid: " + guid);
+
+            return nodeViewsOfType.First();
         }
 
         #endregion

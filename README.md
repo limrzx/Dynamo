@@ -13,7 +13,8 @@ Looking to learn or download Dynamo?  Check out [dynamobim.org](http://dynamobim
 ### Create a Node Library for Dynamo ###
 If you're interested in developing a Node library for Dynamo, the easiest place to start is by browsing the [DynamoSamples](https://github.com/DynamoDS/DynamoSamples).  
 These samples use the [Dynamo NuGet packages](https://www.nuget.org/packages?q=DynamoVisualProgramming) which can be installed using the NuGet package manager in Visual Studio.
-[![NuGet](https://img.shields.io/nuget/v/DynamoVisualProgramming.ZeroTouchLibrary.svg)]()
+
+The [API Changes](https://github.com/DynamoDS/Dynamo/wiki/API-Changes) document explains changes made to the Dynamo API with every version.
 
 You can learn more about developing libraries for Dynamo on the [Dynamo wiki](https://github.com/DynamoDS/Dynamo/wiki/Zero-Touch-Plugin-Development).
 
@@ -38,6 +39,35 @@ Dynamo is an open-source project and would be nothing without its community.  Yo
 
 ## Releases ##
 
+### 0.9.1 ###
+
+Dynamo Core
+- Direct manipulation: Sometimes numerical manipulation isn’t the right approach. Now you can manually push and pull Point geometry when in navigating in the background 3d preview.
+- Freeze Functionality: When you have long running portions of your graph, or don’t want to export data to other applications, or want to debug some logic, don’t unplug your nodes. Now you can suspend execution of specified nodes in the graph by using Freeze in the right-click contextual menu
+- Search Enhancements: Only look at the node libraries you want to with new filtering tools.  See more options at once by using a compact view, or get more information with the detail view.
+- Zoom re-center: Select a node, then zoom and recenter your orbit on it in the 3d Preview Navigation
+- CNtrl-drag:  Copy/Paste nodes in a familiar way
+- Add comments to custom node inputs and full default states for complex data types
+- More forgiving DesignScript syntax:  Users can now write instance methods (ex. MyCurve.PointAtParameter(0.5)) as Static Methods (ex. - Curve.PointAtParameter(MyCurve, 0.5))
+
+Known issues
+- No backwards compatibility with 0.9.0 and before. This is due to neccessary changes to the Dynamo API in advance of 1.0. These changes can be found in the [API Changes](https://github.com/DynamoDS/Dynamo/wiki/API-Changes) document
+- In some situations, placement of Adaptive components requires a change in list structure.  The AC placement nodes now expect to receive lists of lists of placement coordinates.  In the past, the nodes expected to only place one AC, now it expects to place many. If you are going to only place a single component, it needs to be nesting into a list.
+- With Win10 the Dynamo Background Preview is blank. If your Win10 workstation contains a graphics card that used to work with Dynamo running Win7 or 8 and you experience an inability to render graphics you may wish to consult:
+
+  https://github.com/helix-toolkit/helix-toolkit/issues/257#issuecomment-194145932
+
+Dynamo Studio
+- Share your work online:  Share interactive parametric models online.  Just publish your Dynamo graph and send a link to your colleagues or the whole world.  People can view and interact with your designs in a regular web browser with no Dynamo installed
+- ImportExport: Read directly from DWG files and only pull out those pieces of the file that you want.  
+- When a user downloads a dyn from the Customizer (or Shared Workspace), the dyn's Run setting is automatically set to "Manual". This may be confusing to some users when they open the dyn in Dynamo and see all Nulls in the outputs: simply click the Run button.
+- Users have been reporting that the Customizer (Shared Workspaces) functionality is missing in Studio 0.9.1. If this is happening to you, please try uninstalling Studio 0.9.1 and reinstalling it. We are aware of the bug and a fix will be available soon. Please reach out to us if you experience any other related issues.
+
+
+Dynamo for Revit
+- Batch placement of adaptive components : Huge improvements to the speed and reliability of placing large numbers of adaptive components. Note that the nodes now expect lists of lists as inputs, so you may have to update your 9.0 graphs.
+
+
 ### 0.9.0 ###
 
 Create DirectShape Elements in Dynamo
@@ -50,16 +80,16 @@ Manage Custom Node and Package Paths
 - Add paths to makes nodes and packages show up in the library
 
 Node Layout Cleanup Improvements
-- We have recently updated the Node Layout Cleanup feature so that you can 'cleanup' nodes within a group with just one click
+- Clean up layouts considering groups as a whole or clean up layouts within groups
 
-Background Preview working on Remote Desktop and Parallels
+Background Preview works on Remote Desktop and Parallels
 - For remote systems with GPUs and virtual machines with hardware-acceleration, background preview is now visible.
 
 Additional Updates and Improvements
 - New Chapters and expansion of the [Dynamo Primer](http://dynamobim.com/learn/)
-- Easier to parse node overloads in Search 
+- Easier to read Search Results 
 - Node to Code Stabilization
-- Improved Export Image of Canvas functionality
+- Improved 'Canvas Snapshot' functionality
 - Move to .NET 4.5
 - Lots of bug fixes
 

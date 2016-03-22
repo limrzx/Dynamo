@@ -10,12 +10,18 @@ using Dynamo.Models;
 using Dynamo.Selection;
 using Dynamo.UI;
 using Dynamo.Utilities;
-
 using System.Windows.Input;
-using Dynamo.Core;
+using Dynamo.Configuration;  
+using Dynamo.Graph;
+using Dynamo.Graph.Annotations;
+using Dynamo.Graph.Connectors;
+using Dynamo.Graph.Nodes;
+using Dynamo.Graph.Notes;
+using Dynamo.Graph.Workspaces;
+ 
 using Dynamo.Wpf.ViewModels;
 
-using Function = Dynamo.Nodes.Function;
+using Function = Dynamo.Graph.Nodes.CustomNodes.Function;
 
 namespace Dynamo.ViewModels
 {
@@ -266,13 +272,12 @@ namespace Dynamo.ViewModels
         public Action FindNodesFromElements { get; set; }
 
         public RunSettingsViewModel RunSettingsViewModel { get; protected set; }
-
+         
         #endregion
 
         public WorkspaceViewModel(WorkspaceModel model, DynamoViewModel dynamoViewModel)
         {
             this.DynamoViewModel = dynamoViewModel;
-            this.DynamoViewModel.PropertyChanged += DynamoViewModel_PropertyChanged;
 
             Model = model;
             stateMachine = new StateMachine(this);
@@ -333,25 +338,6 @@ namespace Dynamo.ViewModels
         {
             RaisePropertyChanged("CanPaste", "CanCopy", "CanCopyOrPaste");
             PasteCommand.RaiseCanExecuteChanged();
-        }
-
-        void RunSettingsViewModel_PropertyChanged(object sender, PropertyChangedEventArgs e)
-        {
-            // If any property changes on the run settings object
-            // Raise a property change notification for the RunSettingsViewModel
-            // property
-            RaisePropertyChanged("RunSettingsViewModel");
-        }
-
-        void DynamoViewModel_PropertyChanged(object sender, PropertyChangedEventArgs e)
-        {
-            switch (e.PropertyName)
-            {
-                case "CurrentSpace":
-                    // When workspace is changed(e.g. from home to custom), close InCanvasSearch.
-                    OnRequestShowInCanvasSearch(ShowHideFlags.Hide);
-                    break;
-            }
         }
 
         void Connectors_ConnectorAdded(ConnectorModel c)
@@ -795,11 +781,12 @@ namespace Dynamo.ViewModels
         {
             return DynamoSelection.Instance.Selection.Count > 1;
         }
-
+        
         private void Paste(object param)
         {
             var point = InCanvasSearchViewModel.InCanvasSearchPosition;
-            DynamoViewModel.Model.Paste(new Point2D(point.X, point.Y));
+            DynamoViewModel.Model.Paste(new Point2D(point.X, point.Y), false);
+            DynamoViewModel.RaiseCanExecuteUndoRedo();
         }
 
         private void ShowHideAllGeometryPreview(object parameter)
@@ -900,9 +887,7 @@ namespace Dynamo.ViewModels
 
         private void CreateNodeFromSelection(object parameter)
         {
-            CollapseNodes(
-                DynamoSelection.Instance.Selection.Where(x => x is NodeModel)
-                    .Select(x => (x as NodeModel)));
+            CollapseSelectedNodes();
         }
 
         //private void NodeFromSelectionCanExecuteChanged(object sender, NotifyCollectionChangedEventArgs e)
@@ -1047,6 +1032,7 @@ namespace Dynamo.ViewModels
         private void DoGraphAutoLayout(object o)
         {
             Model.DoGraphAutoLayout();
+            DynamoViewModel.RaiseCanExecuteUndoRedo();
         }
 
         private static bool CanDoGraphAutoLayout(object o)
@@ -1055,10 +1041,9 @@ namespace Dynamo.ViewModels
         }
 
         /// <summary>
-        ///     Collapse a set of nodes in this workspace
+        /// Collapse a set of nodes and notes currently selected in workspace
         /// </summary>
-        /// <param name="selectedNodes"> The function definition for the user-defined node </param>
-        internal void CollapseNodes(IEnumerable<NodeModel> selectedNodes)
+        internal void CollapseSelectedNodes()
         {
             var args = new FunctionNamePromptEventArgs();
             DynamoViewModel.Model.OnRequestsFunctionNamePrompt(null, args);
@@ -1066,9 +1051,12 @@ namespace Dynamo.ViewModels
             if (!args.Success)
                 return;
 
+            var selectedNodes = DynamoSelection.Instance.Selection.OfType<NodeModel>();
+            var selectedNotes = DynamoSelection.Instance.Selection.OfType<NoteModel>();
+
             DynamoViewModel.Model.AddCustomNodeWorkspace(
-                DynamoViewModel.Model.CustomNodeManager.Collapse(
-                    selectedNodes, Model, DynamoModel.IsTestMode, args));
+                DynamoViewModel.Model.CustomNodeManager.Collapse(selectedNodes,
+                selectedNotes, Model, DynamoModel.IsTestMode, args));
         }
 
         internal void Loaded()
@@ -1085,12 +1073,12 @@ namespace Dynamo.ViewModels
             AlignSelectedCommand.RaiseCanExecuteChanged();
             ShowHideAllUpstreamPreviewCommand.RaiseCanExecuteChanged();
             ShowHideAllGeometryPreviewCommand.RaiseCanExecuteChanged();
-            SetArgumentLacingCommand.RaiseCanExecuteChanged();
+            SetArgumentLacingCommand.RaiseCanExecuteChanged();           
             RaisePropertyChanged("HasSelection");
             RaisePropertyChanged("IsGeometryOperationEnabled");
             RaisePropertyChanged("AnyNodeVisible");
             RaisePropertyChanged("AnyNodeUpstreamVisible");
-            RaisePropertyChanged("SelectionArgumentLacing");
+            RaisePropertyChanged("SelectionArgumentLacing");            
         }
     }
 

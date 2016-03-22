@@ -102,6 +102,8 @@
     </Compile>
     <Compile Include="AssociativeGraph.cs" />
     <Compile Include="DSASM\HeapObjects.cs" />
+    <Compile Include="Lang\InternalAttributes.cs" />
+    <Compile Include="Lang\Replication\ArgumentAtLevel.cs" />
     <Compile Include="SyntaxAnalysis\AstVisitor.cs" />
     <Compile Include="AttributeEntry.cs" />
     <Compile Include="BuildStatus.cs" />
@@ -112,6 +114,7 @@
     <Compile Include="CodePoint.cs" />
     <Compile Include="Compiler.cs" />
     <Compile Include="CompilerOptions.cs" />
+    <Compile Include="SyntaxAnalysis\ImperativeAstVisitor.cs" />
     <Compile Include="Utils\CompilerUtils.cs" />
     <Compile Include="Core.cs" />
     <Compile Include="ClassTable.cs" />
@@ -132,7 +135,6 @@
     <Compile Include="FFI\ContextDataManager.cs" />
     <Compile Include="FFI\ExtensionAppLoader.cs" />
     <Compile Include="FFI\FFIExecutionManager.cs" />
-    <Compile Include="FFI\FFIPropertyChangedMonitor.cs" />
     <Compile Include="FunctionPointerTable.cs" />
     <Compile Include="Lang\BuiltInFunctionEndPoint.cs" />
     <Compile Include="Lang\BuiltInMethods.cs" />

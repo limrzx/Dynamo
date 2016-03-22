@@ -1,24 +1,13 @@
 using System;
 using System.Collections.Generic;
-using System.Diagnostics;
 using System.IO;
-using System.Text;
 using System.Linq;
 using ProtoCore.AssociativeGraph;
-using ProtoCore.AssociativeEngine;
-using ProtoCore.AST;
 using ProtoCore.AST.AssociativeAST;
-using ProtoCore.BuildData;
-using ProtoCore.CodeModel;
-using ProtoCore.DebugServices;
 using ProtoCore.DSASM;
 using ProtoCore.Lang;
-using ProtoCore.Lang.Replication;
-using ProtoCore.Runtime;
 using ProtoCore.Utils;
 using ProtoFFI;
-
-using StackFrame = ProtoCore.DSASM.StackFrame;
 
 namespace ProtoCore
 {
@@ -50,6 +39,18 @@ namespace ProtoCore
         public bool isLongest {get; private set;}
     }
 
+    public class AtLevel
+    {
+        public AtLevel(int level, bool isDominant)
+        {
+            Level = level;
+            IsDominant = isDominant;
+        }
+
+        public int Level { get; private set; }
+        public bool IsDominant { get; private set; }
+    }
+
     public class Options
     {
         public Options()
@@ -62,7 +63,6 @@ namespace ProtoCore
             LHSGraphNodeUpdate = !DirectDependencyExecution;
 
             ApplyUpdate = false;
-
             DumpByteCode = false;
             Verbose = false;
             DumpIL = false;
@@ -72,38 +72,20 @@ namespace ProtoCore
             GCTempVarsOnDebug = true;
 
             DumpFunctionResolverLogic = false; 
-            DumpOperatorToMethodByteCode = false;
-            SuppressBuildOutput = false;
             BuildOptWarningAsError = false;
             BuildOptErrorAsWarning = false;
             ExecutionMode = ExecutionMode.Serial;
             IDEDebugMode = false;
             WatchTestMode = false;
             IncludeDirectories = new List<string>();
-
-            // defaults to 6 decimal places
-            //
-            FormatToPrintFloatingPoints = "F6";
-            RootCustomPropertyFilterPathName = @"C:\arxapiharness\Bin\AcDesignScript\CustomPropertyFilter.txt";
-            CompileToLib = false;
-            AssocOperatorAsMethod = true;
-
-            EnableProcNodeSanityCheck = true;
-            EnableReturnTypeCheck = true;
-
+            RootCustomPropertyFilterPathName = string.Empty;
             RootModulePathName = Path.GetFullPath(@".");
             staticCycleCheck = true;
             dynamicCycleCheck = true;
-            RecursionChecking = false;
             EmitBreakpoints = true;
-
             localDependsOnGlobalSet = false;
-            TempReplicationGuideEmptyFlag = true;
             AssociativeToImperativePropagation = true;
             SuppressFunctionResolutionWarning = true;
-            EnableVariableAccumulator = true;
-            DisableDisposeFunctionDebug = true;
-            GenerateExprID = true;
             IsDeltaExecution = false;
 
             IsDeltaCompile = false;
@@ -118,7 +100,6 @@ namespace ProtoCore
         public bool ExecuteSSA { get; set; }
         public bool GCTempVarsOnDebug { get; set; }
         public bool Verbose { get; set; }
-        public bool DumpOperatorToMethodByteCode { get; set; }
         public bool SuppressBuildOutput { get; set; }
         public bool BuildOptWarningAsError { get; set; }
         public bool BuildOptErrorAsWarning { get; set; }
@@ -126,23 +107,15 @@ namespace ProtoCore
         public bool WatchTestMode { get; set; }     // set to true when running automation tests for expression interpreter
         public ExecutionMode ExecutionMode { get; set; }
         public string FormatToPrintFloatingPoints { get; set; }
-        public bool CompileToLib { get; set; }
-        public bool AssocOperatorAsMethod { get; set; }
-        public string LibPath { get; set; }
         public bool staticCycleCheck { get; set; }
         public bool dynamicCycleCheck { get; set; }
-        public bool RecursionChecking { get; set; }
         public bool DumpFunctionResolverLogic { get; set; }
         public bool EmitBreakpoints { get; set; }
         public bool localDependsOnGlobalSet { get; set; }
         public bool LHSGraphNodeUpdate { get; set; }
         public bool SuppressFunctionResolutionWarning { get; set; }
 
-        public bool TempReplicationGuideEmptyFlag { get; set; }
         public bool AssociativeToImperativePropagation { get; set; }
-        public bool EnableVariableAccumulator { get; set; }
-        public bool DisableDisposeFunctionDebug { get; set; }
-        public bool GenerateExprID { get; set; }
         public bool IsDeltaExecution { get; set; }
         public InterpreterMode RunMode { get; set; }
 
@@ -211,11 +184,6 @@ namespace ProtoCore
                 }
             }
         }
-
-        public bool EnableReturnTypeCheck { get; set; }
-
-        public bool EnableProcNodeSanityCheck { get; set; }
-
     }
 
     public struct InlineConditional
@@ -270,10 +238,6 @@ namespace ProtoCore
         // This is the AST node list of default imported libraries needed for Graph Compiler
         public CodeBlockNode ImportNodes { get; set; }
 
-        // The root AST node obtained from parsing an expression in a Graph node in GraphUI
-        public List<Node> AstNodeList { get; set; }
-
-
         public enum ErrorType
         {
             OK,
@@ -292,7 +256,7 @@ namespace ProtoCore
             public int Col;
         }
 
-        public Dictionary<ulong, ulong> codeToLocation = new Dictionary<ulong, ulong>();
+        public Dictionary<ulong, ulong> CodeToLocation = new Dictionary<ulong, ulong>();
         public Dictionary<ulong, ErrorEntry> LocationErrorMap = new Dictionary<ulong, ErrorEntry>();
 
 
@@ -328,6 +292,7 @@ namespace ProtoCore
         public BuildStatus BuildStatus { get; private set; }
 
         public TypeSystem TypeSystem { get; set; }
+        public InternalAttributes internalAttributes { get; set; }
 
         // The global class table and function tables
         public ClassTable ClassTable { get; set; }
@@ -412,13 +377,12 @@ namespace ProtoCore
             foreach (CodeBlock block in CodeBlockList)
             {
                 // Update the current function definition in the current block
-                int index = block.procedureTable.IndexOfHash(hash);
+                procNode = block.procedureTable.Procedures.FirstOrDefault(p => p.HashID == hash);
+                int index = procNode == null ? Constants.kInvalidIndex: procNode.ID; 
                 if (Constants.kInvalidIndex == index)
                     continue;
 
-                procNode = block.procedureTable.procList[index];
-
-                block.procedureTable.SetInactive(index);
+                procNode.IsActive = false;
 
                 // Remove staled graph nodes
                 var graph = block.instrStream.dependencyGraph;
@@ -528,7 +492,7 @@ namespace ProtoCore
         {
             Options.ApplyUpdate = false;
 
-            Options.RunMode = InterpreterMode.kNormal;
+            Options.RunMode = InterpreterMode.Normal;
 
             // The main codeblock never goes out of scope
             // Resetting CodeBlockIndex means getting the number of main codeblocks that dont go out of scope.
@@ -559,22 +523,8 @@ namespace ProtoCore
             DynamicVariableTable = new DynamicVariableTable();
             DynamicFunctionTable = new DynamicFunctionTable();
 
-            if (Options.SuppressBuildOutput)
-            {
-                //  don't log any of the build related messages
-                //  just accumulate them in relevant containers with
-                //  BuildStatus object
-                //
-                BuildStatus = new BuildStatus(this, false, false, false);
-            }
-            else
-            {
-                BuildStatus = new BuildStatus(this, Options.BuildOptWarningAsError);
-            }
+            BuildStatus = new BuildStatus(this, Options.BuildOptWarningAsError);
             
-            if (AstNodeList != null) 
-                AstNodeList.Clear();
-
             ExpressionUID = 0;
             ForLoopBlockIndex = Constants.kInvalidIndex;
         }
@@ -586,7 +536,6 @@ namespace ProtoCore
             Configurations = new Dictionary<string, object>();
             DllTypesToLoad = new List<System.Type>();
 
-            Validity.AssertExpiry();
             Options = options;
             
             Compilers = new Dictionary<Language, Compiler>();
@@ -620,6 +569,9 @@ namespace ProtoCore
             ProcNode = null;
             ProcTable = new ProcedureTable(Constants.kGlobalScope);
 
+            // Initialize internal attributes
+            internalAttributes = new InternalAttributes(ClassTable);
+
             //Initialize the function pointer table
             FunctionPointerTable = new FunctionPointerTable();
 
@@ -631,18 +583,7 @@ namespace ProtoCore
 
             deltaCompileStartPC = Constants.kInvalidIndex;
 
-            if (options.SuppressBuildOutput)
-            {
-                //  don't log any of the build related messages
-                //  just accumulate them in relevant containers with
-                //  BuildStatus object
-                //
-                BuildStatus = new BuildStatus(this, false, false, false);
-            }
-            else
-            {
-                BuildStatus = new BuildStatus(this, Options.BuildOptWarningAsError, null, Options.BuildOptErrorAsWarning);
-            }
+            BuildStatus = new BuildStatus(this, Options.BuildOptWarningAsError, null, Options.BuildOptErrorAsWarning);
 
             SSAExpressionUID = 0;
             SSASubscript = 0;
@@ -653,7 +594,7 @@ namespace ProtoCore
             ModifierStateSubscript = 0;
 
             ExprInterpreterExe = null;
-            Options.RunMode = InterpreterMode.kNormal;
+            Options.RunMode = InterpreterMode.Normal;
 
             assocCodegen = null;
 
@@ -754,7 +695,7 @@ namespace ProtoCore
 
             while (symbolIndex == Constants.kInvalidIndex &&
                    codeBlock != null &&
-                   codeBlock.blockType != CodeBlockType.kFunction)
+                   codeBlock.blockType != CodeBlockType.Function)
             {
                 symbolIndex = codeBlock.symbolTable.IndexOf(name, classScope, functionScope);
                 if (symbolIndex != Constants.kInvalidIndex)
@@ -769,7 +710,7 @@ namespace ProtoCore
 
             if (symbolIndex == Constants.kInvalidIndex &&
                 codeBlock != null &&
-                codeBlock.blockType == CodeBlockType.kFunction)
+                codeBlock.blockType == CodeBlockType.Function)
             {
                 symbolIndex = codeBlock.symbolTable.IndexOf(name, classScope, functionScope);
                 if (symbolIndex != Constants.kInvalidIndex)
@@ -802,7 +743,7 @@ namespace ProtoCore
 
                 if (function != Constants.kInvalidIndex &&
                     searchBlock.procedureTable != null &&
-                    searchBlock.procedureTable.procList.Count > function &&   // Note: This check assumes we can not define functions inside a fucntion 
+                    searchBlock.procedureTable.Procedures.Count > function &&   // Note: This check assumes we can not define functions inside a fucntion 
                     symbolIndex == Constants.kInvalidIndex)
                     symbolIndex = searchBlock.symbolTable.IndexOf(name, classscope, Constants.kInvalidIndex);
             }
@@ -814,7 +755,7 @@ namespace ProtoCore
             {
                 // if the search block is of type function, it means our search has gone out of the function itself
                 // so, we should ignore the given function index and only search its parent block's global variable
-                if (searchBlock.blockType == CodeBlockType.kFunction)
+                if (searchBlock.blockType == CodeBlockType.Function)
                     stillInsideFunction = false;
 
                 searchBlock = searchBlock.parent;
@@ -836,7 +777,7 @@ namespace ProtoCore
                     // we need to search twice only when we are searching directly inside the function, 
                     if (function != Constants.kInvalidIndex &&
                         searchBlock.procedureTable != null &&
-                        searchBlock.procedureTable.procList.Count > function && // Note: This check assumes we can not define functions inside a fucntion 
+                        searchBlock.procedureTable.Procedures.Count > function && // Note: This check assumes we can not define functions inside a fucntion 
                         symbolIndex == Constants.kInvalidIndex)
 
                         symbolIndex = searchBlock.symbolTable.IndexOf(name, classscope, Constants.kInvalidIndex);
@@ -857,11 +798,11 @@ namespace ProtoCore
             Validity.Assert(null != cblock);
             while (null != cblock)
             {
-                if (CodeBlockType.kFunction == cblock.blockType)
+                if (CodeBlockType.Function == cblock.blockType)
                 {
                     return true;
                 }
-                else if (CodeBlockType.kLanguage == cblock.blockType)
+                else if (CodeBlockType.Language == cblock.blockType)
                 {
                     return false;
                 }
@@ -872,9 +813,9 @@ namespace ProtoCore
 
         private void BfsBuildSequenceTable(CodeBlock codeBlock, SymbolTable[] runtimeSymbols)
         {
-            if (CodeBlockType.kLanguage == codeBlock.blockType
-                || CodeBlockType.kFunction == codeBlock.blockType
-                || CodeBlockType.kConstruct == codeBlock.blockType)
+            if (CodeBlockType.Language == codeBlock.blockType
+                || CodeBlockType.Function == codeBlock.blockType
+                || CodeBlockType.Construct == codeBlock.blockType)
             {
                 Validity.Assert(codeBlock.symbolTable.RuntimeIndex < RuntimeTableIndex);
                 runtimeSymbols[codeBlock.symbolTable.RuntimeIndex] = codeBlock.symbolTable;
@@ -888,10 +829,10 @@ namespace ProtoCore
 
         private void BfsBuildProcedureTable(CodeBlock codeBlock, ProcedureTable[] procTable)
         {
-            if (CodeBlockType.kLanguage == codeBlock.blockType || CodeBlockType.kFunction == codeBlock.blockType)
+            if (CodeBlockType.Language == codeBlock.blockType || CodeBlockType.Function == codeBlock.blockType)
             {
-                Validity.Assert(codeBlock.procedureTable.runtimeIndex < RuntimeTableIndex);
-                procTable[codeBlock.procedureTable.runtimeIndex] = codeBlock.procedureTable;
+                Validity.Assert(codeBlock.procedureTable.RuntimeIndex < RuntimeTableIndex);
+                procTable[codeBlock.procedureTable.RuntimeIndex] = codeBlock.procedureTable;
             }
 
             foreach (CodeBlock child in codeBlock.children)
@@ -904,7 +845,7 @@ namespace ProtoCore
         {
             if (null != codeBlock)
             {
-                if (CodeBlockType.kLanguage == codeBlock.blockType || CodeBlockType.kFunction == codeBlock.blockType)
+                if (CodeBlockType.Language == codeBlock.blockType || CodeBlockType.Function == codeBlock.blockType)
                 {
                     Validity.Assert(codeBlock.codeBlockId < RuntimeTableIndex);
                     istreamList[codeBlock.codeBlockId] = codeBlock.instrStream;
@@ -929,7 +870,7 @@ namespace ProtoCore
             ExprInterpreterExe.DynamicFuncTable = DynamicFunctionTable;
             ExprInterpreterExe.ContextDataMngr = ContextDataManager;
             ExprInterpreterExe.Configurations = Configurations;
-            ExprInterpreterExe.CodeToLocation = codeToLocation;
+            ExprInterpreterExe.CodeToLocation = CodeToLocation;
             ExprInterpreterExe.CurrentDSFileName = CurrentDSFileName;
            
             // Copy all tables
@@ -1016,7 +957,7 @@ namespace ProtoCore
             DSExecutable.FuncPointerTable = FunctionPointerTable;
             DSExecutable.ContextDataMngr = ContextDataManager;
             DSExecutable.Configurations = Configurations;
-            DSExecutable.CodeToLocation = codeToLocation;
+            DSExecutable.CodeToLocation = CodeToLocation;
             DSExecutable.CurrentDSFileName = CurrentDSFileName;           
         }
 

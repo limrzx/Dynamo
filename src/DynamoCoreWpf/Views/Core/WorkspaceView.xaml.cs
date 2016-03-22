@@ -1,6 +1,5 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Diagnostics;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Input;
@@ -11,20 +10,30 @@ using Dynamo.Utilities;
 using Dynamo.ViewModels;
 using Dynamo.UI;
 using System.Collections.Specialized;
-using System.Threading;
-
+using System.Linq;
+using System.Text;
+using System.Windows.Controls.Primitives;
+using System.Windows.Documents;
+using System.Windows.Interactivity;
+using Dynamo.Controls;
+using Dynamo.Graph;
+using Dynamo.Graph.Annotations;
+using Dynamo.Graph.Nodes;
+using Dynamo.Graph.Notes;
+using Dynamo.Graph.Workspaces;
 using Dynamo.Wpf.Utilities;
 using Dynamo.Search.SearchElements;
 using Dynamo.UI.Controls;
-
+using Dynamo.Wpf.UI;
+using ModifierKeys = System.Windows.Input.ModifierKeys;
+using System.ComponentModel;
 
 namespace Dynamo.Views
 {
     /// <summary>
     /// Interaction logic for WorkspaceView.xaml
     /// </summary>
-    /// 
-    public partial class WorkspaceView : UserControl
+    public partial class WorkspaceView
     {
         public enum CursorState
         {
@@ -45,20 +54,22 @@ namespace Dynamo.Views
             ResizeHorizontal
         }
 
-        private Dynamo.Controls.DragCanvas WorkBench = null;
-
-        private PortViewModel snappedPort = null;
+        private DragCanvas workBench;
+        private readonly DataTemplate draggedSelectionTemplate;
+        private DraggedAdorner draggedAdorner;
+        private object draggedData;
+        private Point startMousePosition;
+        private Point initialMousePosition;
+        private PortViewModel snappedPort;
+        private double currentNodeCascadeOffset;
+        private Point inCanvasSearchPosition;
         private List<DependencyObject> hitResultsList = new List<DependencyObject>();
-        Dictionary<CursorState, String> cursorSet = new Dictionary<CursorState, string>();
 
         public WorkspaceViewModel ViewModel
         {
             get
             {
-                if (this.DataContext is WorkspaceViewModel)
-                    return this.DataContext as WorkspaceViewModel;
-                else
-                    return null;
+                return DataContext as WorkspaceViewModel;
             }
         }
 
@@ -66,17 +77,17 @@ namespace Dynamo.Views
         {
             get
             {
-                return (this.snappedPort != null);
+                return snappedPort != null;
             }
         }
 
         public WorkspaceView()
         {
-            this.Resources.MergedDictionaries.Add(SharedDictionaryManager.DynamoModernDictionary);
-            this.Resources.MergedDictionaries.Add(SharedDictionaryManager.DynamoColorsAndBrushesDictionary);
-            this.Resources.MergedDictionaries.Add(SharedDictionaryManager.DataTemplatesDictionary);
-            this.Resources.MergedDictionaries.Add(SharedDictionaryManager.DynamoConvertersDictionary);
-            this.Resources.MergedDictionaries.Add(SharedDictionaryManager.ConnectorsDictionary);
+            Resources.MergedDictionaries.Add(SharedDictionaryManager.DynamoModernDictionary);
+            Resources.MergedDictionaries.Add(SharedDictionaryManager.DynamoColorsAndBrushesDictionary);
+            Resources.MergedDictionaries.Add(SharedDictionaryManager.DataTemplatesDictionary);
+            Resources.MergedDictionaries.Add(SharedDictionaryManager.DynamoConvertersDictionary);
+            Resources.MergedDictionaries.Add(SharedDictionaryManager.ConnectorsDictionary);
 
             InitializeComponent();
 
@@ -84,60 +95,96 @@ namespace Dynamo.Views
 
             Loaded += OnWorkspaceViewLoaded;
             Unloaded += OnWorkspaceViewUnloaded;
+
+            // view of items to drag
+            draggedSelectionTemplate = (DataTemplate)FindResource("DraggedSelectionTemplate");
+            var dictionaries = draggedSelectionTemplate.Resources.MergedDictionaries;
+
+            // let draggedSelectionTemplate know about views of node, note, annotation, connector
+            dictionaries.Add(SharedDictionaryManager.ConnectorsDictionary);
+            dictionaries.Add(SharedDictionaryManager.DataTemplatesDictionary);
         }
 
         void OnWorkspaceViewLoaded(object sender, RoutedEventArgs e)
         {
-            DynamoSelection.Instance.Selection.CollectionChanged += new NotifyCollectionChangedEventHandler(OnSelectionCollectionChanged);
+            DynamoSelection.Instance.Selection.CollectionChanged += OnSelectionCollectionChanged;
 
             ViewModel.RequestShowInCanvasSearch += ShowHideInCanvasControl;
-
-            var ctrl = InCanvasSearchBar.Child as InCanvasSearchControl;
-            if (ctrl != null)
-            {
-                ctrl.RequestShowInCanvasSearch += ShowHideInCanvasControl;
-            }
+            ViewModel.DynamoViewModel.PropertyChanged += ViewModel_PropertyChanged;
 
             infiniteGridView.AttachToZoomBorder(zoomBorder);
         }
 
+        void ViewModel_PropertyChanged(object sender, PropertyChangedEventArgs e)
+        {
+            switch (e.PropertyName)
+            {
+                case "CurrentSpace":
+                case "ShowStartPage":
+                    // When workspace is changed(e.g. from home to custom) 
+                    // or when go to start page, close InCanvasSearch and ContextMenu.
+                    ShowHideInCanvasControl(ShowHideFlags.Hide);
+                    ShowHideContextMenu(ShowHideFlags.Hide);
+                    break;
+            }
+        }
+
         void OnWorkspaceViewUnloaded(object sender, RoutedEventArgs e)
         {
-            DynamoSelection.Instance.Selection.CollectionChanged -= new NotifyCollectionChangedEventHandler(OnSelectionCollectionChanged);
-            
-            if (ViewModel != null)
-                ViewModel.RequestShowInCanvasSearch -= ShowHideInCanvasControl;
+            DynamoSelection.Instance.Selection.CollectionChanged -= OnSelectionCollectionChanged;
 
-            var ctrl = InCanvasSearchBar.Child as InCanvasSearchControl;
-            if (ctrl != null)
+            if (ViewModel != null)
             {
-                ctrl.RequestShowInCanvasSearch -= ShowHideInCanvasControl;
+                ViewModel.RequestShowInCanvasSearch -= ShowHideInCanvasControl;
+                ViewModel.DynamoViewModel.PropertyChanged -= ViewModel_PropertyChanged;
             }
 
             infiniteGridView.DetachFromZoomBorder(zoomBorder);
         }
 
-        private void LoadCursorState()
+        private void ShowHideInCanvasControl(ShowHideFlags flag)
         {
-            cursorSet = new Dictionary<CursorState, string>
-            {
-                { CursorState.ArcAdding, "arc_add.cur" },
-                { CursorState.ArcRemoving, "arc_remove.cur" },
-                { CursorState.UsualPointer, "pointer.cur" },
-                { CursorState.RectangularSelection, "rectangular_selection.cur" },
-                { CursorState.ResizeDiagonal, "resize_diagonal.cur" },
-                { CursorState.ResizeHorizontal, "resize_horizontal.cur" },
-                { CursorState.ResizeVertical, "resize_vertical.cur" },
-                { CursorState.Pan, "hand_pan.cur" },
-                { CursorState.ActivePan, "hand_pan_active.cur" },
-                { CursorState.NodeExpansion, "expand.cur" },
-                { CursorState.NodeCondensation, "condense.cur" },
-                { CursorState.ArcRemoving, "arc_remove.cur" },
-                { CursorState.LibraryClick, "hand.cur" }
-            };
+            ShowHidePopup(flag, InCanvasSearchBar);
         }
 
-        void OnSelectionCollectionChanged(object sender, System.Collections.Specialized.NotifyCollectionChangedEventArgs e)
+        private void ShowHideContextMenu(ShowHideFlags flag)
+        {
+            ShowHidePopup(flag, ContextMenuPopup);
+        }
+
+        private void ShowHidePopup(ShowHideFlags flag, Popup popup)
+        {
+            switch (flag)
+            {
+                case ShowHideFlags.Hide:
+                    popup.IsOpen = false;
+                    break;
+                case ShowHideFlags.Show:
+                    // Show InCanvas search just in case, when mouse is over workspace.
+                    popup.IsOpen = DynamoModel.IsTestMode || IsMouseOver;
+                    ViewModel.InCanvasSearchViewModel.InCanvasSearchPosition = inCanvasSearchPosition;
+                    break;
+            }
+        }
+
+        internal Point GetCenterPoint()
+        {
+            var x = outerCanvas.ActualWidth / 2.0;
+            var y = outerCanvas.ActualHeight / 2.0;
+            var centerPt = new Point(x, y);
+            var transform = outerCanvas.TransformToDescendant(WorkspaceElements);
+            return transform.Transform(centerPt);
+        }
+
+        internal Rect GetVisibleBounds()
+        {
+            var t = outerCanvas.TransformToDescendant(WorkspaceElements);
+            var topLeft = t.Transform(new Point());
+            var bottomRight = t.Transform(new Point(outerCanvas.ActualWidth, outerCanvas.ActualHeight));
+            return new Rect(topLeft, bottomRight);
+        }
+
+        void OnSelectionCollectionChanged(object sender, NotifyCollectionChangedEventArgs e)
         {
             if (ViewModel == null) return;
             ViewModel.NodeFromSelectionCommand.RaiseCanExecuteChanged();
@@ -145,7 +192,7 @@ namespace Dynamo.Views
             ViewModel.DynamoViewModel.AddAnnotationCommand.RaiseCanExecuteChanged();
             ViewModel.DynamoViewModel.UngroupAnnotationCommand.RaiseCanExecuteChanged();
             ViewModel.DynamoViewModel.UngroupModelCommand.RaiseCanExecuteChanged();
-            ViewModel.DynamoViewModel.AddModelsToGroupModelCommand.RaiseCanExecuteChanged();
+            ViewModel.DynamoViewModel.AddModelsToGroupModelCommand.RaiseCanExecuteChanged();           
         }
 
         /// <summary>
@@ -230,7 +277,7 @@ namespace Dynamo.Views
         private void VmOnRequestSelectionBoxUpdate(object sender, SelectionBoxUpdateArgs e)
         {
             var originalLt = new Point(e.X, e.Y);
-            var translatedLt = WorkBench.TranslatePoint(originalLt, outerCanvas);
+            var translatedLt = workBench.TranslatePoint(originalLt, outerCanvas);
 
             if (e.UpdatedProps.HasFlag(SelectionBoxUpdateArgs.UpdateFlags.Position))
             {
@@ -241,7 +288,7 @@ namespace Dynamo.Views
             if (e.UpdatedProps.HasFlag(SelectionBoxUpdateArgs.UpdateFlags.Dimension))
             {
                 var originalRb = new Point(e.X + e.Width, e.Y + e.Height);
-                var translatedRb = WorkBench.TranslatePoint(originalRb, outerCanvas);
+                var translatedRb = workBench.TranslatePoint(originalRb, outerCanvas);
 
                 selectionBox.Width = translatedRb.X - translatedLt.X;
                 selectionBox.Height = translatedRb.Y - translatedLt.Y;
@@ -276,8 +323,6 @@ namespace Dynamo.Views
             Canvas.SetRight(view, 0);
         }
 
-        private double currentNodeCascadeOffset = 0.0;
-
         void vm_RequestNodeCentered(object sender, EventArgs e)
         {
             ModelEventArgs args = e as ModelEventArgs;
@@ -307,9 +352,9 @@ namespace Dynamo.Views
             // Transform dropPt from outerCanvas space into zoomCanvas space
             if (args.TransformCoordinates)
             {
-                if (WorkBench != null)
+                if (workBench != null)
                 {
-                    var a = outerCanvas.TransformToDescendant(WorkBench);
+                    var a = outerCanvas.TransformToDescendant(workBench);
                     dropPt = a.Transform(dropPt);
                 }
             }
@@ -317,12 +362,6 @@ namespace Dynamo.Views
             // center the node at the drop point
             if (!Double.IsNaN(node.Width))
                 dropPt.X -= (node.Width / 2.0);
-
-            if (!Double.IsNaN(node.Height))
-                dropPt.Y -= (node.Height / 2.0);
-
-            if (!Double.IsNaN(node.Width))
-                dropPt.X -= (node.Height / 2.0);
 
             if (!Double.IsNaN(node.Height))
                 dropPt.Y -= (node.Height / 2.0);
@@ -454,34 +493,29 @@ namespace Dynamo.Views
             vm_ZoomChanged(this, new ZoomEventArgs(scaleRequired));
         }
 
-        private void WorkspaceView_KeyDown(object sender, KeyEventArgs e)
+        private void OnPreviewMouseLeftButtonDown(object sender, MouseButtonEventArgs e)
         {
-            Button source = e.Source as Button;
-
-            if (source == null)
-                return;
-
-            if (e.Key != Key.LeftCtrl && e.Key != Key.RightCtrl)
-                return;
-
-        }
-
-        private void WorkspaceView_KeyUp(object sender, KeyEventArgs e)
-        {
-
+            if (Keyboard.Modifiers == ModifierKeys.Control)
+            {
+                startMousePosition = e.GetPosition(null);
+            }
         }
 
         private void OnMouseLeftButtonDown(object sender, MouseButtonEventArgs e)
         {
-            WorkspaceViewModel wvm = (DataContext as WorkspaceViewModel);
-
-            if (this.snappedPort != null)
-                wvm.HandlePortClicked(this.snappedPort);
-            else
+            if (snappedPort != null)
             {
-                wvm.HandleLeftButtonDown(this.WorkBench, e);
+                ViewModel.HandlePortClicked(snappedPort);
             }
+            else if (Keyboard.Modifiers != ModifierKeys.Control)
+            {
+                ViewModel.HandleLeftButtonDown(workBench, e);
+            }
+        }
 
+        private void OnCanvasMouseDown(object sender, MouseButtonEventArgs e)
+        {
+            ContextMenuPopup.IsOpen = false;
             InCanvasSearchBar.IsOpen = false;
         }
 
@@ -489,38 +523,50 @@ namespace Dynamo.Views
         {
             if (e == null) return; // in certain bizarre cases, e can be null
 
-            this.snappedPort = null;
+            snappedPort = null;
+            if (ViewModel == null) return;
 
-            var wvm = (DataContext as WorkspaceViewModel);
-            if (wvm == null) return;
-            wvm.HandleMouseRelease(this.WorkBench, e);
+            // check IsInIdleState and IsPanning before finishing an action with HandleMouseRelease
+            var returnToSearch = (ViewModel.IsInIdleState || ViewModel.IsPanning)
+                && e.ChangedButton == MouseButton.Right && Keyboard.Modifiers == ModifierKeys.Control;
+
+            ViewModel.HandleMouseRelease(workBench, e);
+            ContextMenuPopup.IsOpen = false;
+            if (returnToSearch)
+            {
+                ViewModel.DynamoViewModel.SearchViewModel.OnRequestFocusSearch();
+            }
+            else if (e.ChangedButton == MouseButton.Right && e.OriginalSource == zoomBorder)
+            {
+                // open if workspace is right-clicked itself 
+                // (not node, note, not buttons from viewControlPanel such as zoom, pan and so on)
+                ContextMenuPopup.IsOpen = true;
+            }
         }
 
-       
         private void OnMouseMove(object sender, MouseEventArgs e)
         {
             this.snappedPort = null;
 
             bool mouseMessageHandled = false;
-            WorkspaceViewModel wvm = (DataContext as WorkspaceViewModel);
-            
+
             // If we are currently connecting and there is an active 
             // connector, redraw it to match the new mouse coordinates.
-            if (wvm.IsSnapping)
-            {              
-                if (wvm.portViewModel != null)
+            if (ViewModel.IsSnapping)
+            {
+                if (ViewModel.portViewModel != null)
                 {
-                    if (wvm.CheckActiveConnectorCompatibility(wvm.portViewModel))
+                    if (ViewModel.CheckActiveConnectorCompatibility(ViewModel.portViewModel))
                     {
                         mouseMessageHandled = true;
-                        wvm.HandleMouseMove(this.WorkBench, wvm.portViewModel.Center);
+                        ViewModel.HandleMouseMove(workBench, ViewModel.portViewModel.Center);
                     }
                 }
                 else
-                    wvm.CurrentCursor = CursorLibrary.GetCursor(CursorSet.ArcSelect);
+                    ViewModel.CurrentCursor = CursorLibrary.GetCursor(CursorSet.ArcSelect);
             }
 
-            if (wvm.IsInIdleState)
+            if (ViewModel.IsInIdleState)
             {
                 // Find the dependency object directly under the mouse 
                 // cursor, then see if it represents a port. If it does,
@@ -536,51 +582,115 @@ namespace Dynamo.Views
                     this.Cursor = null;
             }
 
-            if (false == mouseMessageHandled)
-                wvm.HandleMouseMove(this.WorkBench, e);
-        }
-
-        private PortViewModel GetSnappedPort(Point mouseCursor)
-        {
-            if (this.FindNearestPorts(mouseCursor).Count <= 0)
-                return null;
-
-            double curDistance = 1000000;
-            PortViewModel nearestPort = null;
-
-            for (int i = 0; i < this.hitResultsList.Count; i++)
+            // If selection is going to be dragged and ctrl is pressed.
+            if (ViewModel.IsDragging && Keyboard.Modifiers == ModifierKeys.Control)
             {
-                try
-                {
-                    DependencyObject depObject = this.hitResultsList[i];
-                    PortViewModel pvm = PortFromHitTestResult(depObject);
+                var currentMousePosition = e.GetPosition(null);
 
-                    if (pvm == null)
-                        continue;
+                // Set initialMousePosition here, so that we can use it in OnDragOver.
+                initialMousePosition = e.GetPosition(WorkspaceElements);
 
-                    double distance = Distance(mouseCursor, pvm.Center);
-                    if (distance < curDistance)
-                    {
-                        curDistance = distance;
-                        nearestPort = pvm;
-                    }
-                }
-                catch
+                // Check that current mouse position is far enough from start position.
+                var canDrag =
+                    (Math.Abs(currentMousePosition.X - startMousePosition.X) >
+                     SystemParameters.MinimumHorizontalDragDistance) &&
+                    (Math.Abs(currentMousePosition.Y - startMousePosition.Y) >
+                     SystemParameters.MinimumVerticalDragDistance) &&
+                    e.OriginalSource is DragCanvas;
+
+                if (canDrag)
                 {
-                    continue;
+                    DragAndDrop(e.GetPosition(WorkspaceElements));
+                    mouseMessageHandled = true;
                 }
             }
 
-            return nearestPort;
+            if (!mouseMessageHandled)
+            {
+                ViewModel.HandleMouseMove(workBench, e);
+            }
         }
 
-        private double Distance(Point mouse, Point point)
+        /// <summary>
+        /// Drag and drop nodes, notes, annotations and connectors.
+        /// </summary>
+        /// <param name="mouse">Relative position to WorkspaceElements</param>
+        private void DragAndDrop(Point mouse)
         {
-            return Math.Sqrt(Math.Pow(mouse.X - point.X, 2) + Math.Pow(mouse.Y - point.Y, 2));
+            // disable clearing selection while dragged data is being generated
+            // new AnnotationViewModel unnecessarily clears selection 
+            DynamoSelection.Instance.ClearSelectionDisabled = true;
+            var selection = DynamoSelection.Instance.Selection;
+            var nodes = selection.OfType<NodeModel>();
+            var notes = selection.OfType<NoteModel>();
+            var annotations = selection.OfType<AnnotationModel>();
+
+            var connectors = nodes.SelectMany(n =>
+                n.OutPorts.SelectMany(port => port.Connectors)
+                    .Where(c => c.End != null && c.End.Owner.IsSelected)).Distinct();
+
+            // set list of selected viewmodels
+            draggedData = connectors.Select(c => (ViewModelBase)new ConnectorViewModel(ViewModel, c))
+                .Concat(notes.Select(n => new NoteViewModel(ViewModel, n)))
+                .Concat(annotations.Select(a => new AnnotationViewModel(ViewModel, a)))
+                .Concat(nodes.Select(n =>
+                {
+                    var node = this.ChildrenOfType<NodeView>()
+                        .FirstOrDefault(view => view.ViewModel.NodeModel == n);
+                    if (node == null) return new NodeViewModel(ViewModel, n);
+
+                    var nodeRect = node.nodeBorder;
+                    var size = new Size(nodeRect.ActualWidth, nodeRect.ActualHeight);
+                    // set fixed size for dragged nodes, 
+                    // so that they will correspond to origin nodes
+                    return new NodeViewModel(ViewModel, n, size);
+                })).ToList();
+            
+            var locatableModels = nodes.Concat<ModelBase>(notes);
+            var minX = locatableModels.Any() ? locatableModels.Min(mb => mb.X) : 0;
+            var minY = locatableModels.Any() ? locatableModels.Min(mb => mb.Y) : 0;
+            // compute offset to correctly place selected items right under mouse cursor 
+            var mouseOffset = new Point2D(mouse.X - minX, mouse.Y - minY);
+
+            DynamoSelection.Instance.ClearSelectionDisabled = false;
+            DragDrop.DoDragDrop(this, mouseOffset, DragDropEffects.Copy);
+
+            // remove dragged selection view 
+            if (draggedAdorner != null)
+            {
+                draggedData = null;
+                draggedAdorner.Detach();
+                draggedAdorner = null;
+            }
         }
 
-        private void WorkBench_ContextMenuOpening(object sender, ContextMenuEventArgs e)
+        protected override void OnDragOver(DragEventArgs e)
         {
+            var currentPosition = e.GetPosition(WorkspaceElements);
+            // create adorner if it is necessary
+            if (draggedAdorner == null)
+            {
+                var adornerLayer = AdornerLayer.GetAdornerLayer(WorkspaceElements);
+                draggedAdorner = new DraggedAdorner(draggedData,
+                    draggedSelectionTemplate, WorkspaceElements, adornerLayer);
+            }
+
+            var zoom = ViewModel.Zoom;
+
+            var xOffset = currentPosition.X - initialMousePosition.X;
+            var yOffset = currentPosition.Y - initialMousePosition.Y;
+            // compute (x; y) so that dragged selection has mouse cursor 
+            // in the same place as origin selection does
+            var x = xOffset * zoom;
+            var y = yOffset * zoom;
+
+            // compute bounds of dragged content so that it does not go outside dragged canvas
+            var x1 = -ViewModel.Model.X / zoom - xOffset;
+            var y1 = -ViewModel.Model.Y / zoom - yOffset;
+            var x2 = WorkspaceElements.RenderSize.Width / zoom;
+            var y2 = WorkspaceElements.RenderSize.Height / zoom;
+            var bounds = new Rect(x1, y1, x2, y2);
+            draggedAdorner.SetPosition(x, y, bounds);
         }
 
         /// <summary>
@@ -597,9 +707,9 @@ namespace Dynamo.Views
 
                     var n = (e as ModelEventArgs).Model;
 
-                    if (WorkBench != null)
+                    if (workBench != null)
                     {
-                        var b = WorkBench.TransformToAncestor(outerCanvas);
+                        var b = workBench.TransformToAncestor(outerCanvas);
 
                         Point outerCenter = new Point(outerCanvas.ActualWidth / 2, outerCanvas.ActualHeight / 2);
                         Point nodeCenterInCanvas = new Point(n.X + n.Width / 2, n.Y + n.Height / 2);
@@ -617,10 +727,10 @@ namespace Dynamo.Views
                 });
         }
 
-        private void WorkBench_OnLoaded(object sender, RoutedEventArgs e)
+        private void workBench_OnLoaded(object sender, RoutedEventArgs e)
         {
-            WorkBench = sender as Dynamo.Controls.DragCanvas;
-            WorkBench.owningWorkspace = this;
+            workBench = sender as DragCanvas;
+            workBench.owningWorkspace = this;
         }
 
         private PortViewModel PortFromHitTestResult(DependencyObject depObject)
@@ -635,55 +745,10 @@ namespace Dynamo.Views
         private DependencyObject ElementUnderMouseCursor(Point mouseCursor)
         {
             hitResultsList.Clear();
-            var hitParams = new PointHitTestParameters(mouseCursor);
-            VisualTreeHelper.HitTest(this, null,
-                new HitTestResultCallback(DirectHitTestCallback),
+            VisualTreeHelper.HitTest(this, null, DirectHitTestCallback,
                 new PointHitTestParameters(mouseCursor));
 
             return ((hitResultsList.Count > 0) ? hitResultsList[0] : null);
-        }
-
-        private List<DependencyObject> FindNearestPorts(System.Windows.Point mouse)
-        {
-            hitResultsList.Clear();
-            EllipseGeometry expandedHitTestArea = new EllipseGeometry(mouse, 50.0, 7.0);
-
-            try
-            {
-                VisualTreeHelper.HitTest(this,
-                    new HitTestFilterCallback(HitTestFilter),
-                    new HitTestResultCallback(VisualCallback),
-                    new GeometryHitTestParameters(expandedHitTestArea));
-            }
-            catch
-            {
-                hitResultsList.Clear();
-            }
-
-            return this.hitResultsList;
-        }
-
-        private HitTestFilterBehavior HitTestFilter(DependencyObject o)
-        {
-            if (o.GetType() == typeof(Viewport3D))
-            {
-                return HitTestFilterBehavior.ContinueSkipSelfAndChildren;
-            }
-            else
-            {
-                return HitTestFilterBehavior.Continue;
-            }
-        }
-
-        private HitTestResultBehavior VisualCallback(HitTestResult result)
-        {
-            if (result == null || result.VisualHit == null)
-                throw new ArgumentNullException();
-
-            if (result.VisualHit.GetType() == typeof(Grid))
-                hitResultsList.Add(result.VisualHit);
-
-            return HitTestResultBehavior.Continue;
         }
 
         private HitTestResultBehavior DirectHitTestCallback(HitTestResult result)
@@ -697,38 +762,37 @@ namespace Dynamo.Views
             return HitTestResultBehavior.Continue;
         }
 
-        private Point inCanvasSearchPosition;
-
-        private void ShowHideInCanvasControl(ShowHideFlags flag)
-        {
-            switch (flag)
-            {
-                case ShowHideFlags.Hide:
-                    InCanvasSearchBar.IsOpen = false;
-                    break;
-                case ShowHideFlags.Show:
-                    // Show InCanvas search just in case, when mouse is over workspace.
-                    InCanvasSearchBar.IsOpen = this.IsMouseOver;
-                    ViewModel.InCanvasSearchViewModel.InCanvasSearchPosition = inCanvasSearchPosition;
-                    break;
-            }
-        }
-        
         private void OnWorkspaceDrop(object sender, DragEventArgs e)
         {
+
+            var mousePosition = e.GetPosition(WorkspaceElements);
+            var pointObj = e.Data.GetData(typeof(Point2D));
+            if (pointObj is Point2D)
+            {
+                var offset = (Point2D)pointObj;
+                // compute a point where (minX, minY) will be pasted -
+                // location of selection top left corner
+                var targetX = mousePosition.X - offset.X;
+                var targetY = mousePosition.Y - offset.Y;
+                var targetPoint = new Point2D(targetX, targetY);
+
+                ViewModel.PasteSelection(targetPoint);
+
+                return;
+            }
+
             var nodeInfo = e.Data.GetData(typeof(DragDropNodeSearchElementInfo)) as DragDropNodeSearchElementInfo;
             if (nodeInfo == null)
                 return;
 
             var nodeModel = nodeInfo.SearchElement.CreateNode();
-            var mousePosition = e.GetPosition(this.WorkspaceElements);
             ViewModel.DynamoViewModel.ExecuteCommand(new DynamoModel.CreateNodeCommand(
                 nodeModel, mousePosition.X, mousePosition.Y, false, true));
         }
 
         private void OnInCanvasSearchContextMenuKeyDown(object sender, KeyEventArgs e)
         {
-            var contextMenu = sender as ContextMenu;
+            var contextMenu = sender as Popup;
             if (e.Key == Key.Enter)
             {
                 ViewModel.InCanvasSearchViewModel.InCanvasSearchPosition = inCanvasSearchPosition;
@@ -744,10 +808,12 @@ namespace Dynamo.Views
         /// </summary>
         private void OnInCanvasSearchContextMenuMouseUp(object sender, MouseButtonEventArgs e)
         {
-            var contextMenu = sender as ContextMenu;
-            if (!(e.OriginalSource is System.Windows.Controls.Primitives.Thumb) && !(e.OriginalSource is TextBox)
+            var contextMenu = sender as Popup;
+            if (!(e.OriginalSource is Thumb) && !(e.OriginalSource is TextBox)
                 && contextMenu != null)
+            {
                 contextMenu.IsOpen = false;
+            }
         }
 
         /// <summary>
@@ -767,10 +833,15 @@ namespace Dynamo.Views
             inCanvasSearchPosition = Mouse.GetPosition(this.WorkspaceElements);
         }
 
-        private void OnContextMenuOpened(object sender, RoutedEventArgs e)
+        private void OnContextMenuOpened(object sender, EventArgs e)
         {
-            ViewModel.InCanvasSearchViewModel.SearchText = String.Empty;
+            // If in-canvas search box is open already, close it
+            // to avoid opening multiple instances.
+            if (InCanvasSearchBar.IsOpen)
+            {
+                InCanvasSearchBar.IsOpen = false;
+            }
+            ViewModel.InCanvasSearchViewModel.SearchText = string.Empty;
         }
-
     }
 }

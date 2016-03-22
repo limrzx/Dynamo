@@ -6,23 +6,22 @@ using System.Linq;
 using System.Text.RegularExpressions;
 using System.Web;
 using System.Xml;
-using Dynamo.Properties;
-using Dynamo.Core;
+using Dynamo.Engine.CodeGeneration;
+using Dynamo.Graph;
+using Dynamo.Graph.Nodes;
 using Dynamo.Migration;
-using Dynamo.Models;
 using Dynamo.Utilities;
 using ProtoCore.AST.AssociativeAST;
 using ProtoCore.DSASM;
-using ProtoCore.Namespace;
-using String = DSCoreNodesUI.String;
-using Dynamo.Engine.CodeGeneration;
+using CoreNodeModels.Properties;
 
-namespace Dynamo.Nodes
+namespace CoreNodeModels.Input
 {
     [NodeName("String")]
     [NodeCategory(BuiltinNodeCategories.CORE_INPUT)]
-    [NodeDescription("StringInputNodeDescription", typeof(DSCoreNodesUI.Properties.Resources))]
+    [NodeDescription("StringInputNodeDescription", typeof(Resources))]
     [IsDesignScriptCompatible]
+    [AlsoKnownAs("Dynamo.Nodes.StringInput", "Dynamo.Nodes.dynStringInput", "DSCoreNodesUI.Input.StringInput")]
     public class StringInput : String
     {
         public StringInput()
@@ -86,7 +85,7 @@ namespace Dynamo.Nodes
             return new[] { assignment };
         }
 
-        [NodeMigration(from: "0.5.3.0", to: "0.6.3.0")]
+        [NodeMigration(@from: "0.5.3.0", to: "0.6.3.0")]
         public static NodeMigrationData Migrate_0530_to_0600(NodeMigrationData data)
         {
             NodeMigrationData migrationData = new NodeMigrationData(data.Document);
@@ -112,8 +111,9 @@ namespace Dynamo.Nodes
 
     [NodeName("Number")]
     [NodeCategory(BuiltinNodeCategories.CORE_INPUT)]
-    [NodeDescription("DoubleInputNodeDescription", typeof(DSCoreNodesUI.Properties.Resources))]
+    [NodeDescription("DoubleInputNodeDescription", typeof(Resources))]
     [IsDesignScriptCompatible]
+    [AlsoKnownAs("Dynamo.Nodes.DoubleInput", "Dynamo.Nodes.dynDoubleInput", "DSCoreNodesUI.Input.DoubleInput")]
     public class DoubleInput : NodeModel
     {
         public DoubleInput()
@@ -302,8 +302,8 @@ namespace Dynamo.Nodes
                             }
 
                             double identifierValue0, identifierValue1;
-                            var canBeParsed0 = Double.TryParse(rangeIdentifiers[0], out identifierValue0);
-                            var canBeParsed1 = Double.TryParse(rangeIdentifiers[1], out identifierValue1);
+                            var canBeParsed0 = System.Double.TryParse(rangeIdentifiers[0], out identifierValue0);
+                            var canBeParsed1 = System.Double.TryParse(rangeIdentifiers[1], out identifierValue1);
 
                             //both of the value can be parsed as double
                             if (canBeParsed0 && canBeParsed1)
@@ -484,11 +484,11 @@ namespace Dynamo.Nodes
             {
                 var rangeExpr = new RangeExprNode
                 {
-                    FromNode = _start.GetAstNode(idLookup),
-                    ToNode = _count.GetAstNode(idLookup),
-                    StepNode = _step.GetAstNode(idLookup),
+                    From = _start.GetAstNode(idLookup),
+                    To = _count.GetAstNode(idLookup),
+                    Step = _step.GetAstNode(idLookup),
                     HasRangeAmountOperator = true,
-                    stepoperator = RangeStepOperator.stepsize
+                    StepOperator = RangeStepOperator.StepSize
                 };
                 return rangeExpr;
             }
@@ -567,17 +567,17 @@ namespace Dynamo.Nodes
 
             protected virtual RangeStepOperator GetRangeExpressionOperator()
             {
-                return RangeStepOperator.stepsize;
+                return RangeStepOperator.StepSize;
             }
 
             public AssociativeNode GetAstNode(Dictionary<string, AssociativeNode> idLookup)
             {
                 var rangeExpr = new RangeExprNode
                 {
-                    FromNode = _start.GetAstNode(idLookup),
-                    ToNode = _end.GetAstNode(idLookup),
-                    StepNode = _step.GetAstNode(idLookup),
-                    stepoperator = GetRangeExpressionOperator()
+                    From = _start.GetAstNode(idLookup),
+                    To = _end.GetAstNode(idLookup),
+                    Step = _step.GetAstNode(idLookup),
+                    StepOperator = GetRangeExpressionOperator()
                 };
                 return rangeExpr;
             }
@@ -605,7 +605,7 @@ namespace Dynamo.Nodes
 
             protected override RangeStepOperator GetRangeExpressionOperator()
             {
-                return RangeStepOperator.num;
+                return RangeStepOperator.Number;
             }
         }
 
@@ -644,7 +644,7 @@ namespace Dynamo.Nodes
 
             protected override RangeStepOperator GetRangeExpressionOperator()
             {
-                return RangeStepOperator.approxsize;
+                return RangeStepOperator.ApproximateSize;
             }
         }
 

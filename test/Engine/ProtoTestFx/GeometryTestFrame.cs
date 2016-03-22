@@ -70,7 +70,6 @@ namespace ProtoTestFx
 
             var options = new ProtoCore.Options();
             options.ExecutionMode = ProtoCore.ExecutionMode.Serial;
-            options.SuppressBuildOutput = false;
             options.WatchTestMode = true;
 
             // Cyclic dependency threshold is lowered from the default (2000)
@@ -98,14 +97,15 @@ namespace ProtoTestFx
 
             core.BuildStatus.MessageHandler = fs;
 
-            core.Compilers.Add(ProtoCore.Language.kAssociative, new ProtoAssociative.Compiler(core));
-            core.Compilers.Add(ProtoCore.Language.kImperative, new ProtoImperative.Compiler(core));
+            core.Compilers.Add(ProtoCore.Language.Associative, new ProtoAssociative.Compiler(core));
+            core.Compilers.Add(ProtoCore.Language.Imperative, new ProtoImperative.Compiler(core));
 
             DLLFFIHandler.Register(FFILanguage.CSharp, new CSModuleHelper());
 
             //Run
 
-            mirror = fsr.Execute(code, core, out runtimeCoreOut);
+            runtimeCoreOut = fsr.Execute(code, core);
+            mirror = runtimeCoreOut.Mirror;
 
             //sw.Close();
 

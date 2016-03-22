@@ -10,18 +10,26 @@ using Dynamo;
 using Dynamo.Controls;
 using Dynamo.Models;
 using Dynamo.Nodes;
+using Dynamo.Scheduler;
 using Dynamo.Tests;
 using Dynamo.Utilities;
 using Dynamo.ViewModels;
 using DynamoShapeManager;
 using NUnit.Framework;
-using Dynamo.UI;
 using System.Reflection;
+using CoreNodeModels.Input;
+using Dynamo.Configuration;
+using Dynamo.Graph;
+using Dynamo.Graph.Connectors;
+using Dynamo.Graph.Nodes;
+using Dynamo.Graph.Nodes.CustomNodes;
+using Dynamo.Graph.Notes;
+using Dynamo.Graph.Workspaces;
 using TestServices;
 
 using PythonNodeModels;
 
-using IntegerSlider = DSCoreNodesUI.Input.IntegerSlider;
+using IntegerSlider = CoreNodeModels.Input.IntegerSlider;
 
 namespace DynamoCoreWpfTests
 {
@@ -192,7 +200,7 @@ namespace DynamoCoreWpfTests
                     StartInTestMode = true,
                     PathResolver = pathResolver,
                     GeometryFactoryPath = geometryFactoryPath,
-                    ProcessMode = Dynamo.Core.Threading.TaskProcessMode.Synchronous
+                    ProcessMode = TaskProcessMode.Synchronous
                 });
 
             // Create the DynamoViewModel to control the view
@@ -346,6 +354,40 @@ namespace DynamoCoreWpfTests
             Assert.AreEqual(cmdOne.Y, cmdTwo.Y, 0.000001);
             Assert.AreEqual(cmdOne.DefaultPosition, cmdTwo.DefaultPosition);
             Assert.AreEqual(cmdOne.TransformCoordinates, cmdTwo.TransformCoordinates);
+
+            // A RecordableCommand should be created in "recording mode" by default, 
+            // and only deserialized commands should be marked as "in playback mode".
+            Assert.AreEqual(false, cmdOne.IsInPlaybackMode);
+            Assert.AreEqual(true, cmdTwo.IsInPlaybackMode);
+        }
+
+        [Test, RequiresSTA]
+        public void TestCreateAndConnectNodeCommand()
+        {
+            // Create the command in completely unpredictable states. These 
+            // states should properly be serialized and deserialized across 
+            // two instances of the same command.
+            // 
+            Guid newNodeGuid = Guid.NewGuid();
+            Guid existingNodeGuid = Guid.NewGuid();
+
+            double x = randomizer.NextDouble() * 1000;
+            double y = randomizer.NextDouble() * 1000;
+
+            var cmdOne = new DynamoModel.CreateAndConnectNodeCommand(newNodeGuid, existingNodeGuid, 
+                "dummyNode", 0, 1, x, y, false, false);
+
+            var cmdTwo = DuplicateAndCompare(cmdOne);
+
+            Assert.AreEqual(cmdOne.NewNodeName, cmdTwo.NewNodeName);
+            Assert.AreEqual(cmdOne.X, cmdTwo.X, 0.000001);
+            Assert.AreEqual(cmdOne.Y, cmdTwo.Y, 0.000001);
+            Assert.AreEqual(cmdOne.InputPortIndex, cmdTwo.InputPortIndex);
+            Assert.AreEqual(cmdOne.OutputPortIndex, cmdTwo.OutputPortIndex);
+            Assert.AreEqual(cmdOne.CreateAsDownstreamNode, cmdTwo.CreateAsDownstreamNode);
+            Assert.AreEqual(cmdOne.AddNewNodeToSelection, cmdTwo.AddNewNodeToSelection);
+            Assert.AreEqual(cmdOne.ModelGuid, cmdTwo.ModelGuid);
+            Assert.AreEqual(cmdOne.ModelGuids.ElementAt(1), cmdTwo.ModelGuids.ElementAt(1));
 
             // A RecordableCommand should be created in "recording mode" by default, 
             // and only deserialized commands should be marked as "in playback mode".
@@ -959,6 +1001,17 @@ namespace DynamoCoreWpfTests
             Assert.IsTrue(group.SelectedModels.Any(m => m.GUID == Guid.Parse("7dc3b638-284f-4296-a793-8185ef42cd71")));
         }
 
+        [Test, RequiresSTA]
+        public void TestNodeDeletionWhileMakingConnectionToOtherNode()
+        {
+            RunCommandsFromFile("DeleteNodeWhileConnecting.xml");
+
+            // 1 node and no connectors
+            Assert.AreEqual(1, workspace.Nodes.Count());
+            Assert.AreEqual(false, workspace.Connectors.Any());
+        }
+
+
         #endregion
 
         #region General Node Operations Test Cases
@@ -1396,11 +1449,11 @@ namespace DynamoCoreWpfTests
             {
                 var workspace = ViewModel.Model.CurrentWorkspace;
                 NodeModel nodeModel = workspace.NodeFromWorkspace("37c9b30b-1b78-442a-b433-ec31da996c52");
-                Assert.AreEqual(ElementState.Warning, nodeModel.State);
+                Assert.AreEqual(ElementState.Active, nodeModel.State);
                 if (commandTag == "First")
                 {
                     NodeModel nodeModel2 = workspace.NodeFromWorkspace("37c9b30b-1b78-442a-b433-ec31da996c52");
-                    Assert.AreEqual(ElementState.Warning, nodeModel2.State);
+                    Assert.AreEqual(ElementState.Active, nodeModel2.State);
                 }
             });
         }
@@ -2521,6 +2574,7 @@ namespace DynamoCoreWpfTests
         public void Defect_MAGN_2100()
         {
             // more details available in defect http://adsk-oss.myjetbrains.com/youtrack/issue/MAGN-2100
+            string nodeGuid = "3f309016-7b00-4487-9b68-f0640e892d39";
 
             RunCommandsFromFile("Defect_MAGN_2100.xml", (commandTag) =>
             {
@@ -2538,15 +2592,9 @@ namespace DynamoCoreWpfTests
 
             });
 
-            NodeModel nodeModel = ViewModel.Model.CurrentWorkspace.NodeFromWorkspace(
-                "3f309016-7b00-4487-9b68-f0640e892d39");
-
+            NodeModel nodeModel = ViewModel.Model.CurrentWorkspace.NodeFromWorkspace(nodeGuid);
             Assert.AreNotEqual(ElementState.Warning, nodeModel.State);
-
-            Assert.IsNotNull(nodeModel.GetCachedValueFromEngine(ViewModel.Model.EngineController).Data);
-
-            AssertPreviewValue("3f309016-7b00-4487-9b68-f0640e892d39", 11);
-
+            AssertPreviewValue(nodeGuid, 11);
         }
 
         [Test, RequiresSTA]
@@ -2567,8 +2615,8 @@ namespace DynamoCoreWpfTests
                     var node1 = GetNode("37da4958-1b88-408b-b09d-3deba0ba3835");
                     var node2 = GetNode("b12ce9c8-8c23-43c4-987d-759c6f623998");
 
-                    Assert.NotNull(node1 as Dynamo.Nodes.DummyNode);
-                    Assert.NotNull(node2 as Dynamo.Nodes.DummyNode);
+                    Assert.NotNull(node1 as DummyNode);
+                    Assert.NotNull(node2 as DummyNode);
                 }
                 else if (commandTag == "Delete1")
                 {
@@ -4269,7 +4317,7 @@ namespace DynamoCoreWpfTests
                 {
                     NodeModel node = ViewModel.Model.CurrentWorkspace.NodeFromWorkspace
                          ("8a7591cf-0271-4c47-989f-583ab7c028ca");
-                    Assert.AreEqual(ElementState.Warning, node.State);
+                    AssertPreviewValue("8a7591cf-0271-4c47-989f-583ab7c028ca", "Function");
                 }
                 //In Forth Run, reconnect nodes with 2 as step value for both number sequence and number range
                 else if (commandTag == "ForthRun")
@@ -5172,7 +5220,7 @@ namespace DynamoCoreWpfTests
                 var workspace = ViewModel.Model.CurrentWorkspace;
                 // give absolute path
                 string directory = Path.Combine(TestDirectory, @"core\recorded");
-                var textFileName = workspace.NodeFromWorkspace<DSCore.File.Filename>("3a22370f-7f07-4bd6-b4fb-5680ec82e8d4");
+                var textFileName = workspace.NodeFromWorkspace<Filename>("3a22370f-7f07-4bd6-b4fb-5680ec82e8d4");
                 textFileName.Value = Path.Combine(directory, textFileName.Value);
 
                 switch (commandTag)

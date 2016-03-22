@@ -5,23 +5,24 @@ using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Data;
 using System.Windows.Threading;
-using DSCoreNodesUI.Logic;
+using CoreNodeModels;
+using Dynamo.Configuration;
 using Dynamo.Controls;
-using Dynamo.Core.Threading;
+using Dynamo.Graph.Connectors;
+using Dynamo.Graph.Nodes;
 using Dynamo.Interfaces;
-using Dynamo.Models;
-using Dynamo.UI;
-using Dynamo.Nodes;
+using Dynamo.Scheduler;
 using Dynamo.ViewModels;
 using ProtoCore.AST.AssociativeAST;
+using Dynamo.Wpf;
 
-namespace Dynamo.Wpf.Nodes
+namespace CoreNodeModelsWpf.Nodes
 {
     public class WatchNodeViewCustomization : INodeViewCustomization<Watch>
     {
         #region Private fields
 
-        private IdentifierNode astBeingWatched;
+        private IdentifierNode astBeingComputed;
 
         private DynamoViewModel dynamoViewModel;
 
@@ -40,13 +41,15 @@ namespace Dynamo.Wpf.Nodes
             var watchTree = new WatchTree();
 
             // make empty watchViewModel
-            rootWatchViewModel = new WatchViewModel();
+            rootWatchViewModel = new WatchViewModel(dynamoViewModel.BackgroundPreviewViewModel.AddLabelForPath);
 
             // Fix the maximum width/height of watch node.
             nodeView.PresentationGrid.MaxWidth = Configurations.MaxWatchNodeWidth;
             nodeView.PresentationGrid.MaxHeight = Configurations.MaxWatchNodeHeight;
             nodeView.PresentationGrid.Children.Add(watchTree);
             nodeView.PresentationGrid.Visibility = Visibility.Visible;
+            // disable preview control
+            nodeView.TogglePreviewControlAllowance();
 
             Bind(watchTree, nodeView);
 
@@ -76,7 +79,7 @@ namespace Dynamo.Wpf.Nodes
 
             var rawDataMenuItem = new MenuItem
             {
-                Header = Properties.Resources.WatchNodeRawDataMenu,
+                Header = Dynamo.Wpf.Properties.Resources.WatchNodeRawDataMenu,
                 IsCheckable = true,
             };
             rawDataMenuItem.SetBinding(MenuItem.IsCheckedProperty, checkedBinding);
@@ -89,8 +92,8 @@ namespace Dynamo.Wpf.Nodes
             this.dynamoViewModel.Model.PreferenceSettings.PropertyChanged += PreferenceSettingsOnPropertyChanged;
             rootWatchViewModel.PropertyChanged += RootWatchViewModelOnPropertyChanged;
 
-            watch.InPorts[0].PortConnected += OnPortConnected;
-            watch.InPorts[0].PortDisconnected += OnPortDisconnected;
+            watch.PortConnected += OnPortConnected;
+            watch.PortDisconnected += OnPortDisconnected;
         }
 
         public void Dispose()
@@ -99,23 +102,26 @@ namespace Dynamo.Wpf.Nodes
             dynamoViewModel.Model.PreferenceSettings.PropertyChanged -= PreferenceSettingsOnPropertyChanged;
             rootWatchViewModel.PropertyChanged -= RootWatchViewModelOnPropertyChanged;
 
-            watch.InPorts[0].PortConnected -= OnPortConnected;
-            watch.InPorts[0].PortDisconnected -= OnPortDisconnected;
+            watch.PortConnected -= OnPortConnected;
+            watch.PortDisconnected -= OnPortDisconnected;
         }
 
         private void OnPortConnected(PortModel port, ConnectorModel connectorModel)
         {
             Tuple<int, NodeModel> input;
 
-            if (watch.TryGetInput(watch.InPorts.IndexOf(connectorModel.End), out input))
+            if (!watch.TryGetInput(watch.InPorts.IndexOf(connectorModel.End), out input)
+                || astBeingComputed == null) return;
+
+            var astBeingWatched = input.Item2.GetAstIdentifierForOutputIndex(input.Item1);
+            if (astBeingComputed.Value != astBeingWatched.Value)
             {
-                var oldId = astBeingWatched;
-                astBeingWatched = input.Item2.GetAstIdentifierForOutputIndex(input.Item1);
-                if (oldId != null && astBeingWatched.Value != oldId.Value)
-                {
-                    // the input node has changed, we clear preview
-                    rootWatchViewModel.Children.Clear();
-                }
+                // the input node has changed, we clear preview
+                rootWatchViewModel.Children.Clear();
+            }
+            else
+            {
+                ResetWatch();
             }
         }
 
@@ -205,6 +211,7 @@ namespace Dynamo.Wpf.Nodes
         private void WatchOnEvaluationComplete(object o)
         {
             ResetWatch();
+            astBeingComputed = watch.InPorts[0].Connectors[0].Start.Owner.AstIdentifierForPreview;
         }
     }
 }

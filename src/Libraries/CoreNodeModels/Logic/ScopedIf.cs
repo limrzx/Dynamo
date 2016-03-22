@@ -2,20 +2,20 @@
 using System.Linq;
 
 using Dynamo.Engine.CodeGeneration;
-using Dynamo.Models;
-using Dynamo.Nodes;
-using DSCoreNodesUI.Properties;
-
+using CoreNodeModels.Properties;
+using Dynamo.Graph.Nodes;
+using Dynamo.Graph.Nodes.CustomNodes;
 using ProtoCore;
 using ProtoCore.AST.AssociativeAST;
 
 using CodeBlockNode = ProtoCore.AST.AssociativeAST.CodeBlockNode;
 using LanguageBlockNode = ProtoCore.AST.AssociativeAST.LanguageBlockNode;
 
-namespace DSCoreNodesUI.Logic
+namespace CoreNodeModels.Logic
 {
     [NodeName("ScopeIf"), NodeCategory(BuiltinNodeCategories.LOGIC),
-     NodeDescription("ScopeIfDescription", typeof(Properties.Resources)), IsDesignScriptCompatible]
+     NodeDescription("ScopeIfDescription", typeof(Resources)), IsDesignScriptCompatible]
+    [AlsoKnownAs("DSCoreNodesUI.Logic.ScopedIf")]
     public class ScopedIf : ScopedNodeModel
     {
         public ScopedIf() : base()
@@ -102,7 +102,7 @@ namespace DSCoreNodesUI.Logic
             // }
             var ifBlock = new LanguageBlockNode
             {
-                codeblock = new LanguageCodeBlock(Language.kAssociative),
+                codeblock = new LanguageCodeBlock(Language.Associative),
                 CodeBlockNode = new CodeBlockNode { Body = astsInTrueBranch }
             };
             var ifBranch = AstFactory.BuildReturnStatement(ifBlock).ToImperativeAST();
@@ -112,7 +112,7 @@ namespace DSCoreNodesUI.Logic
             // }
             var elseBlock = new LanguageBlockNode
             {
-                codeblock = new LanguageCodeBlock(Language.kAssociative),
+                codeblock = new LanguageCodeBlock(Language.Associative),
                 CodeBlockNode = new CodeBlockNode { Body = astsInFalseBranch }
             };
             var elseBranch = AstFactory.BuildReturnStatement(elseBlock).ToImperativeAST();
@@ -130,7 +130,7 @@ namespace DSCoreNodesUI.Logic
             // }
             var outerBlock = new LanguageBlockNode
             {
-                codeblock = new LanguageCodeBlock(Language.kImperative),
+                codeblock = new LanguageCodeBlock(Language.Imperative),
                 CodeBlockNode = new ProtoCore.AST.ImperativeAST.CodeBlockNode
                 {
                     Body = new List<ProtoCore.AST.ImperativeAST.ImperativeNode> { ifelseStatement }

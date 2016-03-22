@@ -1,20 +1,20 @@
 ﻿using System;
 using System.Collections.Generic;
-using Dynamo.Models;
-using Dynamo.Nodes;
 using Dynamo.Utilities;
 using DynamoConversions;
 using ProtoCore.AST.AssociativeAST;
 using System.Xml;
-using System.Globalization;
+using Dynamo.Graph;
+using Dynamo.Graph.Nodes;
 
-namespace DSCoreNodesUI
+namespace CoreNodeModels
 {
     [NodeCategory(BuiltinNodeCategories.CORE_UNITS)]
     [NodeName("Convert Between Units")]
     [NodeDescription("ConversionNodeDescription", typeof(Properties.Resources))]
     [NodeSearchTags("DynamoConvertSearchTags", typeof(Properties.Resources))]
     [IsDesignScriptCompatible]
+    [AlsoKnownAs("DSCoreNodesUI.DynamoConvert")]
     public class DynamoConvert : NodeModel
     {
         private ConversionUnit selectedFromConversion;

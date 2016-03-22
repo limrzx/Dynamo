@@ -1062,7 +1062,7 @@ a3;
         }
 
         [Test]
-        [Category("DSDefinedClass_Ignored")]
+        [Ignore][Category("DSDefinedClass_Ignored")]
         [Category("SmokeTest")]
         public void T39_Defect_1452951_3()
         {
@@ -1221,7 +1221,7 @@ p8 = y[1][1][1];
         }
 
         [Test]
-        [Category("DSDefinedClass_Ignored")]
+        [Ignore][Category("DSDefinedClass_Ignored")]
         [Category("SmokeTest")]
         [Category("Failure")]
         public void T42_Create_3_Dim_Collection_Using_For_Loop_In_Class_Constructor()
@@ -1403,7 +1403,6 @@ p9 = y[2][2];
         [Test]
         [Category("DSDefinedClass_Ported")]
         [Category("Array")]
-        [Category("Failure")]
         public void T43_Create_CollectioninForLoop_1457172_2()
         {
             // Tracked in: http://adsk-oss.myjetbrains.com/youtrack/issue/MAGN-4081

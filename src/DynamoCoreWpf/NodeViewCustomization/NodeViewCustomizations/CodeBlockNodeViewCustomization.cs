@@ -5,6 +5,7 @@ using System.Windows.Data;
 using System.Windows.Media;
 
 using Dynamo.Controls;
+using Dynamo.Graph.Nodes;
 using Dynamo.Nodes;
 using Dynamo.UI.Controls;
 
@@ -27,8 +28,9 @@ namespace Dynamo.Wpf
                     NotifyOnValidationError = false,
                     Source = model,
                 });
-            
 
+            cbe.GotFocus += (s, args) => nodeView.TogglePreviewControlAllowance();
+            cbe.LostFocus += (s, args) => nodeView.TogglePreviewControlAllowance();
             if (model.ShouldFocus)
             {
                 cbe.Focus();

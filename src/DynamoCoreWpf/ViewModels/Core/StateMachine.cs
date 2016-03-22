@@ -3,15 +3,14 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Windows;
 using System.Windows.Input;
-
+using Dynamo.Graph;
+using Dynamo.Graph.Nodes;
+using Dynamo.Graph.Workspaces;
 using Dynamo.Models;
 using Dynamo.Selection;
 using Dynamo.Utilities;
 using Dynamo.Wpf.Utilities;
 using DynCmd = Dynamo.Models.DynamoModel;
-
-using Dynamo.Nodes;
-using Dynamo.UI;
 using ModifierKeys = System.Windows.Input.ModifierKeys;
 using Point = System.Windows.Point;
 
@@ -132,6 +131,11 @@ namespace Dynamo.ViewModels
             draggedNodes.Clear(); // We are no longer dragging anything.
         }
 
+        internal void PasteSelection(Point2D targetPoint)
+        {
+            stateMachine.PasteSelection(targetPoint);
+        }
+
         internal void BeginConnection(Guid nodeId, int portIndex, PortType portType)
         {
             bool isInPort = portType == PortType.Input;
@@ -245,8 +249,7 @@ namespace Dynamo.ViewModels
 
             WorkspaceModel.RecordModelsForModification(models, Model.UndoRecorder);
 
-            DynamoViewModel.UndoCommand.RaiseCanExecuteChanged();
-            DynamoViewModel.RedoCommand.RaiseCanExecuteChanged();
+            DynamoViewModel.RaiseCanExecuteUndoRedo();
         }
 
         private void OnDragSelectionStarted(object sender, EventArgs e)
@@ -484,15 +487,15 @@ namespace Dynamo.ViewModels
 
             internal bool HandleLeftButtonDown(object sender, MouseButtonEventArgs e)
             {
-                if (false != ignoreMouseClick)
+                if (ignoreMouseClick)
                 {
                     ignoreMouseClick = false;
                     return false;
                 }
 
-                bool eventHandled = false;
-                bool returnFocusToSearch = true;
-                if (this.currentState == State.Connection)
+                var eventHandled = false;
+                var returnFocus = true;
+                if (currentState == State.Connection)
                 {
                     // Clicking on the canvas while connecting simply cancels 
                     // the operation and drop the temporary connector.
@@ -500,10 +503,10 @@ namespace Dynamo.ViewModels
 
                     eventHandled = true; // Mouse event handled.
                 }
-                else if (this.currentState == State.None)
+                else if (currentState == State.None)
                 {
                     // Record the mouse down position.
-                    IInputElement element = sender as IInputElement;
+                    var element = sender as IInputElement;
                     mouseDownPos = e.GetPosition(element);
 
                     // We'll see if there is any node being clicked on. If so, 
@@ -511,7 +514,7 @@ namespace Dynamo.ViewModels
                     if (null != GetSelectableFromPoint(mouseDownPos))
                     {
                         InitiateDragSequence();
-                        returnFocusToSearch = ShouldDraggingReturnFocusToSearch();
+                        returnFocus = ShouldDraggingReturnFocus();
                     }
                     else
                     {
@@ -526,31 +529,31 @@ namespace Dynamo.ViewModels
                             // should keep the input focus on the code block to 
                             // avoid it being dismissed (with empty content).
                             //
-                            // If Shift is pressed, CBN shouldn't be created.
+                            // If Shift/Ctrl is pressed, CBN shouldn't be created.
                             // Shift Modifier indicates, that user tries to call InCanvasSearch
                             // by using Shift + DoubleClick.
-                            if (Keyboard.Modifiers != ModifierKeys.Shift)
+                            // Ctrl Modifier indicates, that user tries to copy node.
+                            if (Keyboard.Modifiers != ModifierKeys.Shift && Keyboard.Modifiers != ModifierKeys.Control)
+                            {
                                 CreateCodeBlockNode(mouseDownPos);
+                            }
 
-                            returnFocusToSearch = false;
+                            returnFocus = false;
                         }
                     }
 
                     eventHandled = true; // Mouse event handled.
                 }
-                else if (this.currentState == State.PanMode)
-                {
-                    var c = CursorLibrary.GetCursor(CursorSet.HandPanActive);
-                    owningWorkspace.CurrentCursor = c;
-                }
-                else if (this.currentState == State.OrbitMode)
+                else if (currentState == State.PanMode || currentState == State.OrbitMode)
                 {
                     var c = CursorLibrary.GetCursor(CursorSet.HandPanActive);
                     owningWorkspace.CurrentCursor = c;
                 }
 
-                if (returnFocusToSearch != false)
-                    owningWorkspace.DynamoViewModel.ReturnFocusToSearch();
+                if (returnFocus)
+                {
+                    owningWorkspace.DynamoViewModel.OnRequestReturnFocusToView();
+                }
 
                 return eventHandled;
             }
@@ -638,13 +641,19 @@ namespace Dynamo.ViewModels
                         return false;
                     }
 
-                    // Record and begin the drag operation for selected nodes.
-                    var operation = DynCmd.DragSelectionCommand.Operation.BeginDrag;
-                    var command = new DynCmd.DragSelectionCommand(mouseCursor.AsDynamoType(), operation);
-                    owningWorkspace.DynamoViewModel.ExecuteCommand(command);
+                    if (Keyboard.Modifiers != ModifierKeys.Control)
+                    {
+                        // Record and begin the drag operation for selected nodes.
+                        var operation = DynCmd.DragSelectionCommand.Operation.BeginDrag;
+                        var command = new DynCmd.DragSelectionCommand(
+                            mouseCursor.AsDynamoType(),
+                            operation);
+                        owningWorkspace.DynamoViewModel.ExecuteCommand(command);
 
-                    SetCurrentState(State.NodeReposition);
-                    return true;
+                        SetCurrentState(State.NodeReposition);
+                        return true;
+                    }
+
                 }
                 else if (this.currentState == State.NodeReposition)
                 {
@@ -717,6 +726,24 @@ namespace Dynamo.ViewModels
                 return true;
             }
 
+            internal void PasteSelection(Point2D targetPoint)
+            {
+                var model = owningWorkspace.DynamoViewModel.Model;
+                var oldClipboardData = model.ClipBoard.ToList();
+
+                model.Copy();
+                if (model.ClipBoard.Any())
+                {
+                    model.Paste(targetPoint, false);
+                    owningWorkspace.DynamoViewModel.UndoCommand.RaiseCanExecuteChanged();
+                    owningWorkspace.DynamoViewModel.RedoCommand.RaiseCanExecuteChanged();
+                }
+
+                model.ClipBoard.Clear();
+                model.ClipBoard.AddRange(oldClipboardData);
+                SetCurrentState(State.None);
+            }
+
             #endregion
 
             #region Cancel State Methods
@@ -766,7 +793,7 @@ namespace Dynamo.ViewModels
                 SetCurrentState(State.DragSetup);
             }
 
-            private bool ShouldDraggingReturnFocusToSearch()
+            private bool ShouldDraggingReturnFocus()
             {
                 if (currentState != State.DragSetup)
                     throw new InvalidOperationException();

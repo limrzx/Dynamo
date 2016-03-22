@@ -2,8 +2,13 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
+using System.Windows.Media.Media3D;
+using Dynamo.Wpf.ViewModels.Watch3D;
 using HelixToolkit.Wpf.SharpDX;
 using SharpDX;
+using OrthographicCamera = HelixToolkit.Wpf.SharpDX.OrthographicCamera;
+using PerspectiveCamera = HelixToolkit.Wpf.SharpDX.PerspectiveCamera;
+using ProjectionCamera = HelixToolkit.Wpf.SharpDX.ProjectionCamera;
 
 namespace Dynamo.Controls
 {
@@ -19,7 +24,7 @@ namespace Dynamo.Controls
                 );
         }
 
-        internal static Ray Point2DToRay(this Viewport3DX viewport, Vector2 point2D)
+        private static Ray Point2DToRay(this Viewport3DX viewport, Vector2 point2D)
         {
             var camera = viewport.Camera as ProjectionCamera;
             if (camera != null)
@@ -54,7 +59,7 @@ namespace Dynamo.Controls
                     var pos = Vector3.TransformCoordinate(camera.Position.ToVector3(), worldToModelMatrix);
                     return new Ray(pos, r);
                 }
-                else if (camera is OrthographicCamera)
+                if (camera is OrthographicCamera)
                 {
                     return new Ray(zn, r);
                 }
@@ -66,6 +71,34 @@ namespace Dynamo.Controls
         {
             var r = viewport.Point2DToRay(point2d.ToVector2());
             return new Ray3D(r.Position.ToPoint3D(), r.Direction.ToVector3D());
+        }
+
+        internal static Point3D GetCameraPosition(this Viewport3DX viewport)
+        {
+            var pos = Vector3.TransformCoordinate(viewport.Camera.Position.ToVector3(), WorldToModelMatrix());
+            return new Point3D(pos.X, pos.Y, pos.Z);
+        }
+    }
+
+    internal class Ray3 : IRay
+    {
+        private readonly Point3D origin;
+        private readonly Vector3D direction;
+
+        internal Ray3(Point3D origin, Vector3D direction)
+        {
+            this.origin = origin;
+            this.direction = direction;
+        }
+
+        public Point3D Origin
+        {
+            get { return origin; }
+        }
+
+        public Vector3D Direction
+        {
+            get { return direction; }
         }
     }
 }

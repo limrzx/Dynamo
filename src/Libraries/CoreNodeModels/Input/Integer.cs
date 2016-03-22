@@ -1,10 +1,9 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Globalization;
-
 using ProtoCore.AST.AssociativeAST;
 
-namespace DSCoreNodesUI
+namespace CoreNodeModels.Input
 {
     public abstract class Integer : BasicInteractive<int>
     {

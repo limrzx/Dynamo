@@ -21,7 +21,7 @@ namespace ProtoCore.DSASM
             : base(size, heap)
         {
             Dict = new Dictionary<StackValue, StackValue>();
-            MetaData = new MetaData { type = (int)PrimitiveType.kTypeArray };
+            MetaData = new MetaData { type = (int)PrimitiveType.Array };
         }
 
         /// <summary>
@@ -33,7 +33,7 @@ namespace ProtoCore.DSASM
             : base(values, heap)
         {
             Dict = new Dictionary<StackValue, StackValue>();
-            MetaData = new MetaData { type = (int)PrimitiveType.kTypeArray };
+            MetaData = new MetaData { type = (int)PrimitiveType.Array };
         }
 
         /// <summary>
@@ -78,7 +78,7 @@ namespace ProtoCore.DSASM
         {
             if (key.IsNumeric)
             {
-                long index = key.ToInteger().opdata;
+                int index = (int)key.ToInteger().IntegerValue;
                 if (index < 0)
                 {
                     index = index + Count;
@@ -100,7 +100,7 @@ namespace ProtoCore.DSASM
         {
             if (key.IsNumeric)
             {
-                long index = key.ToInteger().opdata;
+                int index = (int)key.ToInteger().IntegerValue;
                 if (index < 0)
                 {
                     index = index + Count;
@@ -108,7 +108,7 @@ namespace ProtoCore.DSASM
 
                 if (index >= 0 && index < Count)
                 {
-                    SetValueAt((int)index, StackValue.Null);
+                    SetValueAt(index, StackValue.Null);
 
                     if (index == Count - 1)
                     {
@@ -195,7 +195,7 @@ namespace ProtoCore.DSASM
         /// <returns></returns>
         public StackValue CopyArray(RuntimeCore runtimeCore)
         {
-            Type anyType = TypeSystem.BuildPrimitiveTypeObject(PrimitiveType.kTypeVar, Constants.kArbitraryRank);
+            Type anyType = TypeSystem.BuildPrimitiveTypeObject(PrimitiveType.Var, Constants.kArbitraryRank);
             return CopyArray(anyType, runtimeCore);
         }
 
@@ -251,7 +251,7 @@ namespace ProtoCore.DSASM
             if (index >= Count || index < 0)
             {
                 if (runtimeCore != null)
-                    runtimeCore.RuntimeStatus.LogWarning(WarningID.kOverIndexing, Resources.kArrayOverIndexed);
+                    runtimeCore.RuntimeStatus.LogWarning(WarningID.OverIndexing, Resources.kArrayOverIndexed);
                 return StackValue.Null;
             }
 
@@ -274,7 +274,7 @@ namespace ProtoCore.DSASM
             if (index.IsNumeric)
             {
                 index = index.ToInteger();
-                return SetValueForIndex((int)index.opdata, value, runtimeCore);
+                return SetValueForIndex((int)index.IntegerValue, value, runtimeCore);
             }
             else
             {
@@ -310,7 +310,7 @@ namespace ProtoCore.DSASM
                 if (index.IsNumeric)
                 {
                     index = index.ToInteger();
-                    int absIndex = array.ExpandByAcessingAt((int)index.opdata);
+                    int absIndex = array.ExpandByAcessingAt((int)index.IntegerValue);
                     svSubArray  = array.GetValueAt(absIndex);
                 }
                 else
@@ -407,7 +407,7 @@ namespace ProtoCore.DSASM
             if (index >= Count || index < 0)
             {
                 if (runtimeCore != null)
-                    runtimeCore.RuntimeStatus.LogWarning(WarningID.kOverIndexing, Resources.kArrayOverIndexed);
+                    runtimeCore.RuntimeStatus.LogWarning(WarningID.OverIndexing, Resources.kArrayOverIndexed);
                 return StackValue.Null;
             }
 
@@ -427,11 +427,13 @@ namespace ProtoCore.DSASM
             if (index.IsNumeric)
             {
                 index = index.ToInteger();
-                return GetValueFromIndex((int)index.opdata, runtimeCore);
+                return GetValueFromIndex((int)index.IntegerValue, runtimeCore);
             }
             else if (index.IsArrayKey)
             {
-                int fullIndex = (int)index.opdata;
+                int fullIndex = Constants.kInvalidIndex;
+                StackValue array;
+                index.TryGetArrayKey(out array, out fullIndex);
 
                 if (Count > fullIndex)
                 {
@@ -492,7 +494,7 @@ namespace ProtoCore.DSASM
                 if (index.IsNumeric)
                 {
                     index = index.ToInteger();
-                    svArray = array.GetValueFromIndex((int)index.opdata, runtimeCore);
+                    svArray = array.GetValueFromIndex((int)index.IntegerValue, runtimeCore);
                 }
                 else
                 {
@@ -501,7 +503,7 @@ namespace ProtoCore.DSASM
 
                 if (!svArray.IsArray)
                 {
-                    runtimeCore.RuntimeStatus.LogWarning(WarningID.kOverIndexing, Resources.kArrayOverIndexed);
+                    runtimeCore.RuntimeStatus.LogWarning(WarningID.OverIndexing, Resources.kArrayOverIndexed);
                     return StackValue.Null;
                 }
 
@@ -549,7 +551,6 @@ namespace ProtoCore.DSASM
                 return false;
             }
 
-            var dict1 = array1.ToDictionary();
             for (int i = 0; i < array1.Count; i++)
             {
                 if (!StackUtils.CompareStackValues(array1.GetValueAt(i), array2.GetValueAt(i), rtCore1, rtCore2, context))
@@ -582,13 +583,13 @@ namespace ProtoCore.DSASM
         public DSObject(int size, Heap heap)
             : base(size, heap)
         {
-            MetaData = new MetaData { type = (int)PrimitiveType.kTypePointer };
+            MetaData = new MetaData { type = (int)PrimitiveType.Pointer };
         }
 
         public DSObject(StackValue[] values, Heap heap)
             : base(values, heap)
         {
-            MetaData = new MetaData { type = (int)PrimitiveType.kTypePointer };
+            MetaData = new MetaData { type = (int)PrimitiveType.Pointer };
         }
 
         public StackValue GetValueFromIndex(int index, RuntimeCore runtimeCore)
@@ -596,7 +597,7 @@ namespace ProtoCore.DSASM
             if (index >= Count || index < 0)
             {
                 if (runtimeCore != null)
-                    runtimeCore.RuntimeStatus.LogWarning(WarningID.kOverIndexing, Resources.kArrayOverIndexed);
+                    runtimeCore.RuntimeStatus.LogWarning(WarningID.OverIndexing, Resources.kArrayOverIndexed);
                 return StackValue.Null;
             }
 
@@ -608,7 +609,7 @@ namespace ProtoCore.DSASM
             if (index >= Count || index < 0)
             {
                 if (runtimeCore != null)
-                    runtimeCore.RuntimeStatus.LogWarning(WarningID.kOverIndexing, Resources.kArrayOverIndexed);
+                    runtimeCore.RuntimeStatus.LogWarning(WarningID.OverIndexing, Resources.kArrayOverIndexed);
                 return StackValue.Null;
             }
 
@@ -625,13 +626,13 @@ namespace ProtoCore.DSASM
         public DSString(int size, Heap heap)
             : base(size, heap)
         {
-            MetaData = new MetaData { type = (int)PrimitiveType.kTypeString };
+            MetaData = new MetaData { type = (int)PrimitiveType.String };
         }
 
         public DSString(StackValue[] values, Heap heap)
             : base(values, heap)
         {
-            MetaData = new MetaData { type = (int)PrimitiveType.kTypeString };
+            MetaData = new MetaData { type = (int)PrimitiveType.String };
         }
 
         public void SetPointer(StackValue pointer)
@@ -669,7 +670,7 @@ namespace ProtoCore.DSASM
             if (index >= str.Length || index < 0)
             {
                 if (runtimeCore != null)
-                    runtimeCore.RuntimeStatus.LogWarning(WarningID.kOverIndexing, Resources.kStringOverIndexed);
+                    runtimeCore.RuntimeStatus.LogWarning(WarningID.OverIndexing, Resources.kStringOverIndexed);
                 return StackValue.Null;
             }
 
@@ -681,18 +682,19 @@ namespace ProtoCore.DSASM
             int pos = Constants.kInvalidIndex;
             if (index.IsNumeric)
             {
-                pos = (int)index.ToInteger().opdata;
+                pos = (int)index.ToInteger().IntegerValue;
                 return GetValueAtIndex(pos, runtimeCore);
             }
             else if (index.IsArrayKey)
             {
-                pos = (int)index.opdata;
+                StackValue array;
+                index.TryGetArrayKey(out array, out pos);
                 return GetValueAtIndex(pos, runtimeCore);
             }
             else
             {
                 if (runtimeCore != null)
-                    runtimeCore.RuntimeStatus.LogWarning(WarningID.kInvalidIndexing, Resources.kInvalidArguments);
+                    runtimeCore.RuntimeStatus.LogWarning(WarningID.InvalidIndexing, Resources.kInvalidArguments);
                 return StackValue.Null;
             }
         }

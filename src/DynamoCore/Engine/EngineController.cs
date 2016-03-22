@@ -1,14 +1,11 @@
 ﻿using Autodesk.DesignScript.Interfaces;
 using Dynamo.Engine.CodeCompletion;
-using Dynamo.Core.Threading;
-using Dynamo.Interfaces;
 using Dynamo.Models;
-using Dynamo.Nodes;
 using Dynamo.Logging;
+using Dynamo.Scheduler;
 using ProtoCore.AST.AssociativeAST;
 using ProtoCore.DSASM.Mirror;
 using ProtoCore.Mirror;
-using ProtoCore.Namespace;
 using ProtoScript.Runners;
 using System;
 using System.Collections.Generic;
@@ -21,6 +18,8 @@ using RuntimeWarning = ProtoCore.Runtime.WarningEntry;
 using ProtoCore.Utils;
 using Dynamo.Engine.NodeToCode;
 using Dynamo.Engine.CodeGeneration;
+using Dynamo.Graph;
+using Dynamo.Graph.Nodes;
 
 namespace Dynamo.Engine
 {
@@ -134,7 +133,7 @@ namespace Dynamo.Engine
         /// <summary>
         /// Return all function groups.
         /// </summary>
-        public IEnumerable<FunctionGroup> GetFunctionGroups()
+        internal IEnumerable<FunctionGroup> GetFunctionGroups()
         {
             return libraryServices.GetAllFunctionGroups();
         }
@@ -143,7 +142,7 @@ namespace Dynamo.Engine
         /// Import library.
         /// </summary>
         /// <param name="library"></param>
-        public void ImportLibrary(string library)
+        internal void ImportLibrary(string library)
         {
             LibraryServices.ImportLibrary(library);
         }
@@ -186,7 +185,7 @@ namespace Dynamo.Engine
         /// </summary>
         /// <param name="variableName"></param>
         /// <returns></returns>
-        public List<IGraphicItem> GetGraphicItems(string variableName)
+        internal List<IGraphicItem> GetGraphicItems(string variableName)
         {
             lock (macroMutex)
             {
@@ -204,7 +203,7 @@ namespace Dynamo.Engine
         /// <param name="nodes"></param>
         /// <param name="verboseLogging"></param>
         /// <returns></returns>
-        public bool GenerateGraphSyncData(ICollection<NodeModel> nodes, bool verboseLogging)
+        internal bool GenerateGraphSyncData(ICollection<NodeModel> nodes, bool verboseLogging)
         {
             lock (macroMutex)
             {
@@ -308,7 +307,7 @@ namespace Dynamo.Engine
         /// <param name="definition"></param>
         /// <param name="verboseLogging"></param>
         /// <returns></returns>
-        public bool GenerateGraphSyncDataForCustomNode(IEnumerable<NodeModel> nodes, CustomNodeDefinition definition, bool verboseLogging)
+        internal bool GenerateGraphSyncDataForCustomNode(IEnumerable<NodeModel> nodes, CustomNodeDefinition definition, bool verboseLogging)
         {
             lock (macroMutex)
             {
@@ -419,7 +418,7 @@ namespace Dynamo.Engine
         /// a prior call to ComputeSyncData at the time UpdateGraphAsyncTask was 
         /// scheduled.</param>
         /// 
-        public void UpdateGraphImmediate(GraphSyncData graphSyncData)
+        internal void UpdateGraphImmediate(GraphSyncData graphSyncData)
         {
             // NOTE: We will not attempt to catch any unhandled exception from 
             // within the execution. Such exception, if any, will be caught by
@@ -438,6 +437,16 @@ namespace Dynamo.Engine
             return liveRunnerServices.GetRuntimeWarnings();
         }
 
+        internal IEnumerable<Guid> GetExecutedAstGuids(Guid sessionID)
+        {
+            return liveRunnerServices.GetExecutedAstGuids(sessionID);
+        }
+
+        internal void RemoveRecordedAstGuidsForSession(Guid sessionID)
+        {
+            liveRunnerServices.RemoveRecordedAstGuidsForSession(sessionID);
+        }
+
         /// <summary>
         /// Update graph with graph sync data.
         /// </summary>
@@ -448,7 +457,7 @@ namespace Dynamo.Engine
         /// exception thrown from within the UpdateGraph call.</param>
         /// <returns>Returns true if any update has taken place, or false 
         /// otherwise.</returns>
-        public bool UpdateGraph(ICollection<NodeModel> nodes, out Exception fatalException)
+        internal bool UpdateGraph(ICollection<NodeModel> nodes, out Exception fatalException)
         {
             lock (macroMutex)
             {
@@ -602,6 +611,23 @@ namespace Dynamo.Engine
         {
             syncDataManager.DeleteNodes(node.GUID);
         }
+
+        /// <summary>
+        /// When a node is in freeze state, the node and its dependencies are
+        /// deleted from AST
+        /// </summary>
+        /// <param name="node">The node.</param>
+        internal void DeleteFrozenNodesFromAST(NodeModel node)
+        {
+            HashSet<NodeModel> gathered = new HashSet<NodeModel>();
+            node.GetDownstreamNodes(node, gathered);
+            foreach (var iNode in gathered)
+            {
+                syncDataManager.DeleteNodes(iNode.GUID);               
+            }
+        }
+
+        
 
         #region Node2Code
 

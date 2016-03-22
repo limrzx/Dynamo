@@ -3,7 +3,9 @@ using System.Collections.Specialized;
 using System.ComponentModel;
 using Dynamo.Annotations;
 using Dynamo.Core;
-
+using Dynamo.Graph;
+using Dynamo.Graph.Nodes;
+using Dynamo.Graph.Workspaces;
 using DynamoServices;
 
 namespace Dynamo.Models
@@ -62,6 +64,8 @@ namespace Dynamo.Models
         {
             if (WorkspaceClearing != null)
                 WorkspaceClearing();
+
+            WorkspaceEvents.OnWorkspaceClearing();
         }
 
         public event Action<WorkspaceModel> WorkspaceCleared;
@@ -69,6 +73,8 @@ namespace Dynamo.Models
         {
             if (WorkspaceCleared != null)
                 WorkspaceCleared(workspace);
+
+            WorkspaceEvents.OnWorkspaceCleared();
         }
 
         public event Action<WorkspaceModel> WorkspaceAdded;
@@ -77,7 +83,7 @@ namespace Dynamo.Models
             var handler = WorkspaceAdded;
             if (handler != null) handler(obj);
 
-            WorkspaceEvents.OnWorkspaceAdded(obj.Guid, obj.Name);
+            WorkspaceEvents.OnWorkspaceAdded(obj.Guid, obj.Name, obj.GetType());
         }
 
         public event Action<WorkspaceModel> WorkspaceRemoveStarted;
@@ -86,7 +92,7 @@ namespace Dynamo.Models
             var handler = WorkspaceRemoveStarted;
             if (handler != null) handler(obj);
 
-            WorkspaceEvents.OnWorkspaceRemoveStarted(obj.Guid, obj.Name);
+            WorkspaceEvents.OnWorkspaceRemoveStarted(obj.Guid, obj.Name, obj.GetType());
         }
 
         public event Action<WorkspaceModel> WorkspaceRemoved;
@@ -95,7 +101,7 @@ namespace Dynamo.Models
             var handler = WorkspaceRemoved;
             if (handler != null) handler(obj);
 
-            WorkspaceEvents.OnWorkspaceRemoved(obj.Guid, obj.Name);
+            WorkspaceEvents.OnWorkspaceRemoved(obj.Guid, obj.Name, obj.GetType());
         }
 
         public event Action DeletionStarted;

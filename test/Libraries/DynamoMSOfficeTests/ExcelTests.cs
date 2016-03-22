@@ -3,13 +3,13 @@ using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
 using System.Linq;
-
+using CoreNodeModels.Input;
 using DSOffice;
+using Dynamo.Configuration;
 using NUnit.Framework;
 using ProtoCore.Mirror;
-using Dynamo.Engine.CodeCompletion;
-using Dynamo.Models;
-using Dynamo.Nodes;
+using Dynamo.Graph.Connectors;
+using Dynamo.Graph.Nodes;
 
 
 namespace Dynamo.Tests
@@ -37,6 +37,8 @@ namespace Dynamo.Tests
             // not get persisted across to the subsequent test case.
             // 
             PreferenceSettings.DynamoTestPath = Path.Combine(TempFolder, "UserPreferenceTest.xml");
+
+            ExcelInterop.ShowOnStartup = false;
         }
 
         public override void Cleanup()
@@ -84,7 +86,7 @@ namespace Dynamo.Tests
 
             Assert.AreEqual(5, ViewModel.CurrentSpace.Nodes.Count());
 
-            var filename = ViewModel.Model.CurrentWorkspace.FirstNodeFromWorkspace<DSCore.File.Filename>();
+            var filename = ViewModel.Model.CurrentWorkspace.FirstNodeFromWorkspace<Filename>();
 
             // remap the filename as Excel requires an absolute path
             filename.Value = filename.Value.Replace(@"..\..\..\test", TestDirectory);
@@ -105,7 +107,7 @@ namespace Dynamo.Tests
             string openPath = Path.Combine(TestDirectory, @"core\excel\WorksheetsFromFile.dyn");
             ViewModel.OpenCommand.Execute(openPath);
 
-            var filename = ViewModel.Model.CurrentWorkspace.FirstNodeFromWorkspace<DSCore.File.Filename>();
+            var filename = ViewModel.Model.CurrentWorkspace.FirstNodeFromWorkspace<Filename>();
 
             // remap the filename as Excel requires an absolute path
             filename.Value = filename.Value.Replace(@"..\..\..\test", TestDirectory);
@@ -129,7 +131,7 @@ namespace Dynamo.Tests
 
             Assert.AreEqual(5, ViewModel.CurrentSpace.Nodes.Count());
 
-            var filename = ViewModel.Model.CurrentWorkspace.FirstNodeFromWorkspace<DSCore.File.Filename>();
+            var filename = ViewModel.Model.CurrentWorkspace.FirstNodeFromWorkspace<Filename>();
 
             // remap the filename as Excel requires an absolute path
             filename.Value = filename.Value.Replace(@"..\..\..\test", TestDirectory);
@@ -147,7 +149,7 @@ namespace Dynamo.Tests
             string openPath = Path.Combine(TestDirectory, @"core\excel\WorksheetByName_InvalidInput.dyn");
             ViewModel.OpenCommand.Execute(openPath);
 
-            var filename = ViewModel.Model.CurrentWorkspace.FirstNodeFromWorkspace<DSCore.File.Filename>();
+            var filename = ViewModel.Model.CurrentWorkspace.FirstNodeFromWorkspace<Filename>();
 
             // remap the filename as Excel requires an absolute path
             filename.Value = filename.Value.Replace(@"..\..\..\test", TestDirectory);
@@ -168,7 +170,7 @@ namespace Dynamo.Tests
             string openPath = Path.Combine(TestDirectory, @"core\excel\DataFromFile_ascending.dyn");
             ViewModel.OpenCommand.Execute(openPath);
 
-            var filename = ViewModel.Model.CurrentWorkspace.FirstNodeFromWorkspace<DSCore.File.Filename>();
+            var filename = ViewModel.Model.CurrentWorkspace.FirstNodeFromWorkspace<Filename>();
 
             // remap the filename as Excel requires an absolute path
             filename.Value = filename.Value.Replace(@"..\..\..\test", TestDirectory);
@@ -202,7 +204,7 @@ namespace Dynamo.Tests
             string openPath = Path.Combine(TestDirectory, @"core\excel\DataFromFile_2Dimensional.dyn");
             ViewModel.OpenCommand.Execute(openPath);
 
-            var filename = ViewModel.Model.CurrentWorkspace.FirstNodeFromWorkspace<DSCore.File.Filename>();
+            var filename = ViewModel.Model.CurrentWorkspace.FirstNodeFromWorkspace<Filename>();
 
             // remap the filename as Excel requires an absolute path
             filename.Value = filename.Value.Replace(@"..\..\..\test", TestDirectory);
@@ -236,7 +238,7 @@ namespace Dynamo.Tests
             string openPath = Path.Combine(TestDirectory, @"core\excel\DataFromFile_missingCell.dyn");
             ViewModel.OpenCommand.Execute(openPath);
 
-            var filename = ViewModel.Model.CurrentWorkspace.FirstNodeFromWorkspace<DSCore.File.Filename>();
+            var filename = ViewModel.Model.CurrentWorkspace.FirstNodeFromWorkspace<Filename>();
             // remap the filename as Excel requires an absolute path
             filename.Value = filename.Value.Replace(@"..\..\..\test", TestDirectory);
             var watch = ViewModel.Model.CurrentWorkspace.GetDSFunctionNodeFromWorkspace("Excel.GetDataFromExcelWorksheet");
@@ -254,7 +256,7 @@ namespace Dynamo.Tests
             string openPath = Path.Combine(TestDirectory, @"core\excel\DataFromFile_mixedNumbersAndStrings.dyn");
             ViewModel.OpenCommand.Execute(openPath);
 
-            var filename = ViewModel.Model.CurrentWorkspace.FirstNodeFromWorkspace<DSCore.File.Filename>();
+            var filename = ViewModel.Model.CurrentWorkspace.FirstNodeFromWorkspace<Filename>();
 
             // remap the filename as Excel requires an absolute path
             filename.Value = filename.Value.Replace(@"..\..\..\test", TestDirectory);
@@ -277,7 +279,7 @@ namespace Dynamo.Tests
             string openPath = Path.Combine(TestDirectory, @"core\excel\ReadOnlyFile.dyn");
             ViewModel.OpenCommand.Execute(openPath);
 
-            var filename = ViewModel.Model.CurrentWorkspace.FirstNodeFromWorkspace<DSCore.File.Filename>();
+            var filename = ViewModel.Model.CurrentWorkspace.FirstNodeFromWorkspace<Filename>();
 
             // remap the filename as Excel requires an absolute path
             filename.Value = filename.Value.Replace(@"..\..\..\test", TestDirectory);
@@ -294,13 +296,13 @@ namespace Dynamo.Tests
             string openPath = Path.Combine(TestDirectory, @"core\excel\ReadAndWriteExcel.dyn");
             ViewModel.OpenCommand.Execute(openPath);
 
-            var filename = ViewModel.Model.CurrentWorkspace.FirstNodeFromWorkspace<DSCore.File.Filename>();
+            var filename = ViewModel.Model.CurrentWorkspace.FirstNodeFromWorkspace<Filename>();
 
             // remap the filename as Excel requires an absolute path
             filename.Value = filename.Value.Replace(@"..\..\..\test", TestDirectory);
 
             var filePath = System.IO.Path.Combine(TempFolder, "output.xlsx");
-            var stringNode = ViewModel.Model.CurrentWorkspace.FirstNodeFromWorkspace<Dynamo.Nodes.StringInput>();
+            var stringNode = ViewModel.Model.CurrentWorkspace.FirstNodeFromWorkspace<StringInput>();
             stringNode.Value = filePath;
 
             // watch displays the data from the Read node
@@ -329,7 +331,7 @@ namespace Dynamo.Tests
             string openPath = Path.Combine(TestDirectory, @"core\excel\ChangeFilename.dyn");
             ViewModel.OpenCommand.Execute(openPath);
 
-            var fileNodes = ViewModel.Model.CurrentWorkspace.Nodes.OfType<DSCore.File.Filename>();
+            var fileNodes = ViewModel.Model.CurrentWorkspace.Nodes.OfType<Filename>();
             foreach (var file in fileNodes)
             {
                 file.Value.Replace(@"..\..\..\test", TestDirectory);
@@ -368,16 +370,16 @@ namespace Dynamo.Tests
             string openPath = Path.Combine(TestDirectory, @"core\excel\ReadNonExistingFile.dyn");
             ViewModel.OpenCommand.Execute(openPath);
 
-            var filename = ViewModel.Model.CurrentWorkspace.FirstNodeFromWorkspace<DSCore.File.Filename>();
+            var filename = ViewModel.Model.CurrentWorkspace.FirstNodeFromWorkspace<Filename>();
 
             // remap the filename as Excel requires an absolute path
             filename.Value = filename.Value.Replace(@"..\..\..\test", TestDirectory);
 
-            var newname = ViewModel.Model.CurrentWorkspace.FirstNodeFromWorkspace<DSCore.File.Filename>();
+            var newname = ViewModel.Model.CurrentWorkspace.FirstNodeFromWorkspace<Filename>();
             var watch = ViewModel.Model.CurrentWorkspace.NodeFromWorkspace("de5c9439-bc4c-408d-9484-798d8d8b8aed");
             ViewModel.HomeSpace.Run();
            
-            Assert.IsTrue(watch.State == Models.ElementState.Warning);
+            Assert.IsTrue(watch.State == ElementState.Warning);
            
 
         }
@@ -390,7 +392,7 @@ namespace Dynamo.Tests
             string openPath = Path.Combine(TestDirectory, @"core\excel\ReadExcelAsStrings.dyn");
             ViewModel.OpenCommand.Execute(openPath);
 
-            var filename = ViewModel.Model.CurrentWorkspace.FirstNodeFromWorkspace<DSCore.File.Filename>();
+            var filename = ViewModel.Model.CurrentWorkspace.FirstNodeFromWorkspace<Filename>();
 
             // remap the filename as Excel requires an absolute path
             filename.Value = filename.Value.Replace(@"..\..\..\test", TestDirectory);
@@ -415,7 +417,7 @@ namespace Dynamo.Tests
             string openPath = Path.Combine(TestDirectory, @"core\excel\ReadEmptyCellsAsStrings.dyn");
             ViewModel.OpenCommand.Execute(openPath);
 
-            var filename = ViewModel.Model.CurrentWorkspace.FirstNodeFromWorkspace<DSCore.File.Filename>();
+            var filename = ViewModel.Model.CurrentWorkspace.FirstNodeFromWorkspace<Filename>();
 
             // remap the filename as Excel requires an absolute path
             filename.Value = filename.Value.Replace(@"..\..\..\test", TestDirectory);
@@ -532,7 +534,7 @@ namespace Dynamo.Tests
             ViewModel.OpenCommand.Execute(openPath);
             Assert.AreEqual(6, ViewModel.CurrentSpace.Nodes.Count());
 
-            var filename = ViewModel.Model.CurrentWorkspace.FirstNodeFromWorkspace<DSCore.File.Filename>();
+            var filename = ViewModel.Model.CurrentWorkspace.FirstNodeFromWorkspace<Filename>();
 
             // remap the filename as Excel requires an absolute path
             filename.Value = filename.Value.Replace(@"..\..\..\test", TestDirectory);
@@ -556,7 +558,7 @@ namespace Dynamo.Tests
             ViewModel.OpenCommand.Execute(openPath);
             Assert.AreEqual(7, ViewModel.CurrentSpace.Nodes.Count());
             
-            var filename = ViewModel.Model.CurrentWorkspace.FirstNodeFromWorkspace<DSCore.File.Filename>();
+            var filename = ViewModel.Model.CurrentWorkspace.FirstNodeFromWorkspace<Filename>();
 
             // remap the filename as Excel requires an absolute path
             filename.Value = filename.Value.Replace(@"..\..\..\test", TestDirectory);
@@ -667,7 +669,7 @@ namespace Dynamo.Tests
             ViewModel.OpenCommand.Execute(openPath);
 
             var filePath = System.IO.Path.Combine(TempFolder, "output.xlsx");
-            var stringNode = ViewModel.Model.CurrentWorkspace.FirstNodeFromWorkspace<Dynamo.Nodes.StringInput>();
+            var stringNode = ViewModel.Model.CurrentWorkspace.FirstNodeFromWorkspace<StringInput>();
             stringNode.Value = filePath;
 
             var writeNode = ViewModel.Model.CurrentWorkspace.GetDSFunctionNodeFromWorkspace("Excel.WriteToFile");
@@ -687,7 +689,7 @@ namespace Dynamo.Tests
             Assert.AreEqual(1, rowList.Count());
             Assert.AreEqual("BBB", rowList[0].Data);
 
-            var stringNodes = ViewModel.Model.CurrentWorkspace.Nodes.OfType<Dynamo.Nodes.StringInput>();
+            var stringNodes = ViewModel.Model.CurrentWorkspace.Nodes.OfType<StringInput>();
             var inputStringNode = stringNodes.Where(x => x.Value == "BBB").FirstOrDefault();
             inputStringNode.Value = "AAA";
 
@@ -717,7 +719,7 @@ namespace Dynamo.Tests
             // the test shuts down.
             // 
             var filePath = System.IO.Path.Combine(TempFolder, "output.xlsx");
-            var stringNode = ViewModel.Model.CurrentWorkspace.FirstNodeFromWorkspace<Dynamo.Nodes.StringInput>();
+            var stringNode = ViewModel.Model.CurrentWorkspace.FirstNodeFromWorkspace<StringInput>();
             stringNode.Value = filePath;
 
             var writeNode = ViewModel.Model.CurrentWorkspace.GetDSFunctionNodeFromWorkspace("Excel.WriteToFile");
@@ -739,7 +741,7 @@ namespace Dynamo.Tests
             ViewModel.OpenCommand.Execute(openPath);
 
             var filePath = System.IO.Path.Combine(TempFolder, "output.xlsx");
-            var stringNode = ViewModel.Model.CurrentWorkspace.FirstNodeFromWorkspace<Dynamo.Nodes.StringInput>();
+            var stringNode = ViewModel.Model.CurrentWorkspace.FirstNodeFromWorkspace<StringInput>();
             stringNode.Value = filePath;
 
             var writeNode = ViewModel.Model.CurrentWorkspace.GetDSFunctionNodeFromWorkspace("Excel.WriteToFile");
@@ -762,7 +764,7 @@ namespace Dynamo.Tests
             string openPath = Path.Combine(TestDirectory, @"core\excel\WriteNestedEmptyListToExcel.dyn");
             ViewModel.OpenCommand.Execute(openPath);
 
-            var filename = ViewModel.Model.CurrentWorkspace.FirstNodeFromWorkspace<DSCore.File.Filename>();
+            var filename = ViewModel.Model.CurrentWorkspace.FirstNodeFromWorkspace<Filename>();
 
             // remap the filename as Excel requires an absolute path
             filename.Value = filename.Value.Replace(@"..\..\..\test", TestDirectory);
@@ -790,7 +792,7 @@ namespace Dynamo.Tests
             ViewModel.OpenCommand.Execute(openPath);
 
             var filePath = System.IO.Path.Combine(TempFolder, "output.xlsx");
-            var stringNode = ViewModel.Model.CurrentWorkspace.FirstNodeFromWorkspace<Dynamo.Nodes.StringInput>();
+            var stringNode = ViewModel.Model.CurrentWorkspace.FirstNodeFromWorkspace<StringInput>();
             stringNode.Value = filePath;
 
             var writeNode = ViewModel.Model.CurrentWorkspace.GetDSFunctionNodeFromWorkspace("Excel.WriteToFile");
@@ -814,7 +816,7 @@ namespace Dynamo.Tests
             string openPath = Path.Combine(TestDirectory, @"core\excel\OverWriteExcelSheet.dyn");
             ViewModel.OpenCommand.Execute(openPath);
 
-            var filename = ViewModel.Model.CurrentWorkspace.FirstNodeFromWorkspace<DSCore.File.Filename>();
+            var filename = ViewModel.Model.CurrentWorkspace.FirstNodeFromWorkspace<Filename>();
 
             // remap the filename as Excel requires an absolute path
             filename.Value = filename.Value.Replace(@"..\..\..\test", TestDirectory);
@@ -842,7 +844,7 @@ namespace Dynamo.Tests
             string openPath = Path.Combine(TestDirectory, @"core\excel\OverWritePartialExcelSheet.dyn");
             ViewModel.OpenCommand.Execute(openPath);
 
-            var filename = ViewModel.Model.CurrentWorkspace.FirstNodeFromWorkspace<DSCore.File.Filename>();
+            var filename = ViewModel.Model.CurrentWorkspace.FirstNodeFromWorkspace<Filename>();
 
             // remap the filename as Excel requires an absolute path
             filename.Value = filename.Value.Replace(@"..\..\..\test", TestDirectory);
@@ -874,7 +876,7 @@ namespace Dynamo.Tests
             ViewModel.OpenCommand.Execute(openPath);
 
             var filePath = System.IO.Path.Combine(TempFolder, "output.xlsx");
-            var stringNode = ViewModel.Model.CurrentWorkspace.FirstNodeFromWorkspace<Dynamo.Nodes.StringInput>();
+            var stringNode = ViewModel.Model.CurrentWorkspace.FirstNodeFromWorkspace<StringInput>();
             stringNode.Value = filePath;
 
             var writeNode = ViewModel.Model.CurrentWorkspace.GetDSFunctionNodeFromWorkspace("Excel.WriteToFile");
@@ -898,7 +900,7 @@ namespace Dynamo.Tests
             ViewModel.OpenCommand.Execute(openPath);
 
             var filePath = System.IO.Path.Combine(TempFolder, "output.xlsx");
-            var stringNode = ViewModel.Model.CurrentWorkspace.FirstNodeFromWorkspace<Dynamo.Nodes.StringInput>();
+            var stringNode = ViewModel.Model.CurrentWorkspace.FirstNodeFromWorkspace<StringInput>();
             stringNode.Value = filePath;
 
             var writeNode = ViewModel.Model.CurrentWorkspace.GetDSFunctionNodeFromWorkspace("Excel.WriteToFile");
@@ -921,7 +923,7 @@ namespace Dynamo.Tests
             ViewModel.OpenCommand.Execute(openPath);
 
             var filePath = System.IO.Path.Combine(TempFolder, "output.xlsx");
-            var stringNode = ViewModel.Model.CurrentWorkspace.FirstNodeFromWorkspace<Dynamo.Nodes.StringInput>();
+            var stringNode = ViewModel.Model.CurrentWorkspace.FirstNodeFromWorkspace<StringInput>();
             stringNode.Value = filePath;
 
             var writeNode = ViewModel.Model.CurrentWorkspace.GetDSFunctionNodeFromWorkspace("Excel.WriteToFile");
@@ -932,7 +934,7 @@ namespace Dynamo.Tests
             Assert.AreEqual(1, runtimeCore.RuntimeStatus.WarningCount);
 
             ProtoCore.Runtime.WarningEntry warningEntry = runtimeCore.RuntimeStatus.Warnings.ElementAt(0);
-            Assert.AreEqual(ProtoCore.Runtime.WarningID.kDefault, warningEntry.ID);
+            Assert.AreEqual(ProtoCore.Runtime.WarningID.Default, warningEntry.ID);
 
             Assert.IsTrue(File.Exists(filePath));
 
@@ -952,7 +954,7 @@ namespace Dynamo.Tests
             string openPath = Path.Combine(TestDirectory, @"core\excel\WriteNonExistingFile.dyn");
             ViewModel.OpenCommand.Execute(openPath);
 
-            var filename = ViewModel.Model.CurrentWorkspace.FirstNodeFromWorkspace<DSCore.File.Filename>();
+            var filename = ViewModel.Model.CurrentWorkspace.FirstNodeFromWorkspace<Filename>();
 
             // remap the filename as Excel requires an absolute path
             filename.Value = filename.Value.Replace(@"..\..\..\test", TestDirectory);
@@ -974,7 +976,7 @@ namespace Dynamo.Tests
             string openPath = Path.Combine(TestDirectory, @"core\excel\WriteNonExistingSheet.dyn");
             ViewModel.OpenCommand.Execute(openPath);
 
-            var filename = ViewModel.Model.CurrentWorkspace.FirstNodeFromWorkspace<DSCore.File.Filename>();
+            var filename = ViewModel.Model.CurrentWorkspace.FirstNodeFromWorkspace<Filename>();
 
             // remap the filename as Excel requires an absolute path
             filename.Value = filename.Value.Replace(@"..\..\..\test", TestDirectory);
@@ -994,7 +996,7 @@ namespace Dynamo.Tests
             string openPath = Path.Combine(TestDirectory, @"core\excel\WriteNodewithError.dyn");
             ViewModel.OpenCommand.Execute(openPath);
 
-            var filename = ViewModel.Model.CurrentWorkspace.FirstNodeFromWorkspace<DSCore.File.Filename>();
+            var filename = ViewModel.Model.CurrentWorkspace.FirstNodeFromWorkspace<Filename>();
 
             // remap the filename as Excel requires an absolute path
             filename.Value = filename.Value.Replace(@"..\..\..\test", TestDirectory);
@@ -1021,7 +1023,7 @@ namespace Dynamo.Tests
             string openPath = Path.Combine(TestDirectory, @"core\excel\WriteToReadOnlyFile.dyn");
             ViewModel.OpenCommand.Execute(openPath);
 
-            var filename = ViewModel.Model.CurrentWorkspace.FirstNodeFromWorkspace<DSCore.File.Filename>();
+            var filename = ViewModel.Model.CurrentWorkspace.FirstNodeFromWorkspace<Filename>();
 
             // remap the filename as Excel requires an absolute path
             filename.Value = filename.Value.Replace(@"..\..\..\test", TestDirectory);
@@ -1036,7 +1038,7 @@ namespace Dynamo.Tests
 
             ViewModel.HomeSpace.Run();
             Assert.IsNull(watch.CachedValue.Data);
-            Assert.IsTrue(watch.State == Models.ElementState.Warning);
+            Assert.IsTrue(watch.State == ElementState.Warning);
             if (fileAttributes == FileAttributes.ReadOnly)
                 File.SetAttributes(filePath, FileAttributes.Normal);
 
@@ -1052,7 +1054,7 @@ namespace Dynamo.Tests
             string openPath = Path.Combine(TestDirectory, @"core\excel\WriteModifyPath.dyn");
             ViewModel.OpenCommand.Execute(openPath);
 
-            var filename = ViewModel.Model.CurrentWorkspace.FirstNodeFromWorkspace<DSCore.File.Filename>();
+            var filename = ViewModel.Model.CurrentWorkspace.FirstNodeFromWorkspace<Filename>();
 
             // remap the filename as Excel requires an absolute path
             filename.Value = filename.Value.Replace(@"..\..\..\test", TestDirectory);
@@ -1090,7 +1092,7 @@ namespace Dynamo.Tests
             string openPath = Path.Combine(TestDirectory, @"core\excel\WriteModifyGraph.dyn");
             ViewModel.OpenCommand.Execute(openPath);
 
-            var filename = ViewModel.Model.CurrentWorkspace.FirstNodeFromWorkspace<DSCore.File.Filename>();
+            var filename = ViewModel.Model.CurrentWorkspace.FirstNodeFromWorkspace<Filename>();
 
             // remap the filename as Excel requires an absolute path
             filename.Value = filename.Value.Replace(@"..\..\..\test", TestDirectory);
@@ -1124,7 +1126,7 @@ namespace Dynamo.Tests
             string openPath = Path.Combine(TestDirectory, @"core\excel\WriteModifyGraph_2.dyn");
             ViewModel.OpenCommand.Execute(openPath);
 
-            var filename = ViewModel.Model.CurrentWorkspace.FirstNodeFromWorkspace<DSCore.File.Filename>();
+            var filename = ViewModel.Model.CurrentWorkspace.FirstNodeFromWorkspace<Filename>();
 
             // remap the filename as Excel requires an absolute path
             filename.Value = filename.Value.Replace(@"..\..\..\test", TestDirectory);
@@ -1162,7 +1164,7 @@ namespace Dynamo.Tests
             string openPath = Path.Combine(TestDirectory, @"core\excel\WriteModifyGraph_3.dyn");
             ViewModel.OpenCommand.Execute(openPath);
 
-            var filename = ViewModel.Model.CurrentWorkspace.FirstNodeFromWorkspace<DSCore.File.Filename>();
+            var filename = ViewModel.Model.CurrentWorkspace.FirstNodeFromWorkspace<Filename>();
 
             // remap the filename as Excel requires an absolute path
             filename.Value = filename.Value.Replace(@"..\..\..\test", TestDirectory);
@@ -1197,7 +1199,7 @@ namespace Dynamo.Tests
             string openPath = Path.Combine(TestDirectory, @"core\excel\SingleSheetOverwrite.dyn");
             ViewModel.OpenCommand.Execute(openPath);
 
-            var filename = ViewModel.Model.CurrentWorkspace.FirstNodeFromWorkspace<DSCore.File.Filename>();
+            var filename = ViewModel.Model.CurrentWorkspace.FirstNodeFromWorkspace<Filename>();
 
             // remap the filename as Excel requires an absolute path
             filename.Value = filename.Value.Replace(@"..\..\..\test", TestDirectory);
@@ -1229,7 +1231,7 @@ namespace Dynamo.Tests
             ViewModel.OpenCommand.Execute(openPath);
 
             var filePath = System.IO.Path.Combine(TempFolder, "output.xlsx");
-            var stringNode = ViewModel.Model.CurrentWorkspace.FirstNodeFromWorkspace<Dynamo.Nodes.StringInput>();
+            var stringNode = ViewModel.Model.CurrentWorkspace.FirstNodeFromWorkspace<StringInput>();
 
             stringNode.Value = filePath;
 
@@ -1261,7 +1263,7 @@ namespace Dynamo.Tests
             Assert.AreEqual(6, ViewModel.CurrentSpace.Nodes.Count());
 
             var workspace = ViewModel.Model.CurrentWorkspace;
-            var filename = workspace.FirstNodeFromWorkspace<DSCore.File.Filename>();
+            var filename = workspace.FirstNodeFromWorkspace<Filename>();
 
             // remap the filename as Excel requires an absolute path
             filename.Value = filename.Value.Replace(@"..\..\..\test", testDir);
@@ -1281,7 +1283,7 @@ namespace Dynamo.Tests
             Assert.AreEqual(7, ViewModel.CurrentSpace.Nodes.Count());
 
             var workspace = ViewModel.Model.CurrentWorkspace;
-            var filename = workspace.FirstNodeFromWorkspace<DSCore.File.Filename>();
+            var filename = workspace.FirstNodeFromWorkspace<Filename>();
 
             // remap the filename as Excel requires an absolute path
             filename.Value = filename.Value.Replace(@"..\..\..\test", testDir);
@@ -1298,7 +1300,7 @@ namespace Dynamo.Tests
             ViewModel.OpenCommand.Execute(openPath2);
             Assert.AreEqual(5, ViewModel.CurrentSpace.Nodes.Count());
 
-            var filename2 = workspace.FirstNodeFromWorkspace<DSCore.File.Filename>();
+            var filename2 = workspace.FirstNodeFromWorkspace<Filename>();
 
             // remap the filename as Excel requires an absolute path
             filename2.Value = filename2.Value.Replace(@"..\..\..\test", testDir);
@@ -1320,7 +1322,7 @@ namespace Dynamo.Tests
             Assert.AreEqual(5, ViewModel.CurrentSpace.Nodes.Count());
 
             var workspace = ViewModel.Model.CurrentWorkspace;
-            var filename = workspace.FirstNodeFromWorkspace<DSCore.File.Filename>();
+            var filename = workspace.FirstNodeFromWorkspace<Filename>();
 
             // remap the filename as Excel requires an absolute path
             filename.Value = filename.Value.Replace(@"..\..\..\test", testDir);

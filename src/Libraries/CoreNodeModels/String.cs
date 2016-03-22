@@ -1,11 +1,9 @@
-﻿using Dynamo.Models;
-using Dynamo.Nodes;
+﻿using System.Collections.Generic;
+using CoreNodeModels.Properties;
+using Dynamo.Graph.Nodes;
 using ProtoCore.AST.AssociativeAST;
 
-using System.Collections.Generic;
-
-using DSCoreNodesUI.Properties;
-namespace DSCoreNodesUI.StringNodes
+namespace CoreNodeModels
 {
     /// <summary>
     /// Base class to represent a single input string node. It supports 
@@ -40,7 +38,7 @@ namespace DSCoreNodesUI.StringNodes
                     AstFactory.BuildBooleanNode(true)
                 };
 
-                rhs = AstFactory.BuildFunctionCall("_SingleFunctionObject", inputParams);
+                rhs = AstFactory.BuildFunctionCall("Function", inputParams);
             }
             else
             {
@@ -55,10 +53,11 @@ namespace DSCoreNodesUI.StringNodes
     }
 
     [NodeName("String from Object")]
-    [NodeDescription("StringfromObjectDescription", typeof(DSCoreNodesUI.Properties.Resources))]
+    [NodeDescription("StringfromObjectDescription", typeof(Resources))]
     [NodeCategory("Core.String.Actions")]
-    [NodeSearchTags("FromObjectSearchTags", typeof(DSCoreNodesUI.Properties.Resources))]
+    [NodeSearchTags("FromObjectSearchTags", typeof(Resources))]
     [IsDesignScriptCompatible]
+    [AlsoKnownAs("DSCoreNodesUI.StringNodes.FromObject", "DSCoreNodesUI.FromObject")]
     public class FromObject: ToStringNodeBase 
     {
         public FromObject() : base("__ToStringFromObject")
@@ -71,10 +70,11 @@ namespace DSCoreNodesUI.StringNodes
     }
 
     [NodeName("String from Array")]
-    [NodeDescription("StringfromArrayDescription", typeof(DSCoreNodesUI.Properties.Resources))]
+    [NodeDescription("StringfromArrayDescription", typeof(Resources))]
     [NodeCategory("Core.String.Actions")]
-    [NodeSearchTags("FromArraySearchTags", typeof(DSCoreNodesUI.Properties.Resources))]
+    [NodeSearchTags("FromArraySearchTags", typeof(Resources))]
     [IsDesignScriptCompatible]
+    [AlsoKnownAs("DSCoreNodesUI.StringNodes.FromArray", "DSCoreNodesUI.FromArray")]
     public class FromArray : ToStringNodeBase 
     {
         public FromArray() : base("__ToStringFromArray")

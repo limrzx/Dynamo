@@ -1,12 +1,12 @@
 ﻿using Dynamo.Interfaces;
 using NUnit.Framework;
 using System.IO;
-using Dynamo.Nodes;
 using Dynamo.ViewModels;
 using ProtoCore.Mirror;
-using Dynamo.Models;
 using System.Collections.Generic;
 using System.Linq;
+using CoreNodeModels;
+using Dynamo.Graph.Nodes;
 using Dynamo.Tests;
 
 namespace DynamoCoreWpfTests 
@@ -192,7 +192,7 @@ namespace DynamoCoreWpfTests
                 ViewModel.Model.EngineController.LiveRunnerRuntimeCore,
                 watchNode.InPorts[0].Connectors[0].Start.Owner.AstIdentifierForPreview.Name);
 
-            Assert.AreEqual("_SingleFunctionObject", watchVM.NodeLabel);
+            Assert.AreEqual("Function", watchVM.NodeLabel);
         }
 
         [Test]
@@ -228,7 +228,7 @@ namespace DynamoCoreWpfTests
                ViewModel.Model.EngineController.LiveRunnerRuntimeCore,
                 watchNode.InPorts[0].Connectors[0].Start.Owner.AstIdentifierForPreview.Name);
 
-            Assert.AreEqual("_SingleFunctionObject", watchVM.NodeLabel);
+            Assert.AreEqual("Function", watchVM.NodeLabel);
         }
     }
 }

@@ -1,8 +1,9 @@
 ﻿using System;
 using System.Globalization;
 using System.Windows.Data;
+using Dynamo.Configuration;
 
-namespace Dynamo.Wpf.Converters
+namespace CoreNodeModelsWpf.Converters
 {
     public class StringToDateTimeConverter : IValueConverter
     {

@@ -1,14 +1,13 @@
 ﻿using System.Collections.Generic;
 using System.IO;
 using System.Linq;
-
-using Dynamo.Models;
-using Dynamo.Nodes;
-using DSCoreNodesUI;
+using CoreNodeModels.Input;
+using Dynamo.Graph.Nodes;
+using Dynamo.Graph.Nodes.ZeroTouch;
 using NUnit.Framework;
 using ProtoCore.Mirror;
 
-using IntegerSlider = DSCoreNodesUI.Input.IntegerSlider;
+using IntegerSlider = CoreNodeModels.Input.IntegerSlider;
 
 namespace Dynamo.Tests
 {
@@ -115,7 +114,7 @@ namespace Dynamo.Tests
             RunModel(openPath);
 
             var add = CurrentDynamoModel.CurrentWorkspace.NodeFromWorkspace<DSFunction>("ccb2eda9-0966-4ab8-a186-0d5f844559c1");
-            Assert.AreEqual(20, add.GetCachedValueFromEngine(CurrentDynamoModel.EngineController).Data);
+            AssertPreviewValue("ccb2eda9-0966-4ab8-a186-0d5f844559c1", 20);
         }
 
         [Test, Category("RegressionTests")]
@@ -471,6 +470,25 @@ namespace Dynamo.Tests
 
             // Same Stinrg input
             AssertPreviewValue("56f3c0fd-d39c-46cb-a4ea-4f266f7a9fce", true);
+        }
+
+        [Test]
+        public void CyclicDependency_Defect8827()
+        {
+            string openPath = Path.Combine(TestDirectory,
+                                        @"core\DynamoDefects\Defect_MAGN_8827.dyn");
+            RunModel(openPath);
+            // check for number of Nodes and Connectors
+            Assert.AreEqual(2, CurrentDynamoModel.CurrentWorkspace.Nodes.Count());
+            Assert.AreEqual(2, CurrentDynamoModel.CurrentWorkspace.Connectors.Count());
+
+            var node1 = CurrentDynamoModel.CurrentWorkspace.NodeFromWorkspace
+                ("385281c8-3177-4359-a348-a3084e16a41a");
+            var node2 = CurrentDynamoModel.CurrentWorkspace.NodeFromWorkspace
+                ("1ad8632e-7ddc-4cc7-bfa5-58cb899a5ddf");
+
+            Assert.IsTrue(node1.ToolTipText.Equals(ProtoCore.Properties.Resources.kInvalidStaticCyclicDependency));
+            Assert.IsTrue(node2.ToolTipText.Equals(ProtoCore.Properties.Resources.kInvalidStaticCyclicDependency));
         }
     }
 }

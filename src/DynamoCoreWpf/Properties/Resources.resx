@@ -334,8 +334,8 @@
     <comment>File menu | Open</comment>
   </data>
   <data name="DynamoViewFileMenuRecentFiles" xml:space="preserve">
-    <value>_Recent Files</value>
-    <comment>File menu | Recent files</comment>
+    <value>_Open Recent Files...</value>
+    <comment>File menu | Open Recent files</comment>
   </data>
   <data name="DynamoViewFileMenuSave" xml:space="preserve">
     <value>_Save</value>
@@ -638,6 +638,10 @@ It does not contain your graph or any personal data</value>
   <data name="DynamoViewViewMenuPreviewNavigate" xml:space="preserve">
     <value>Navigate Background 3D Preview</value>
     <comment>View menu | Navigate background 3D preview</comment>
+  </data>
+  <data name="DynamoViewViewMenuShowGrid" xml:space="preserve">
+    <value>Show Grid</value>
+    <comment>View menu | Show Grid</comment>
   </data>
   <data name="DynamoViewViewMenuShowBackground3DPreview" xml:space="preserve">
     <value>Showing Background 3D Preview</value>
@@ -1946,5 +1950,44 @@ Do you want to install the latest Dynamo update?</value>
   </data>
   <data name="BackgroundPreviewCreationFailureMessage" xml:space="preserve">
     <value>There was an error creating a background preview in Dynamo. This could be due to a lack of graphics resources on your machine. See the log for more information.</value>
+  </data>
+  <data name="NodesRunStatus" xml:space="preserve">
+    <value>Freeze</value>
+    <comment>Context menu item</comment>
+  </data>
+  <data name="CompactLayoutTitle" xml:space="preserve">
+    <value>Compact</value>
+  </data>
+  <data name="DetailedLayoutTitle" xml:space="preserve">
+    <value>Detailed</value>
+  </data>
+  <data name="FilterIconTooltip" xml:space="preserve">
+    <value>Filter results</value>
+  </data>
+  <data name="LayoutIconTooltip" xml:space="preserve">
+    <value>View layout</value>
+  </data>
+  <data name="ShowHideLibraryIconTooltip" xml:space="preserve">
+    <value>Show/hide</value>
+  </data>
+  <data name="OnlyTitle" xml:space="preserve">
+    <value>only</value>
+  </data>
+  <data name="SelectAllTitle" xml:space="preserve">
+    <value>Select All</value>
+  </data>
+  <data name="NodeViewCustomizationFindErrorMessage" xml:space="preserve">
+    <value>There was an error while finding node view customizations for {0}. Contact the author of this assembly for more information.</value>
+  </data>
+  <data name="PreviewListLabel" xml:space="preserve">
+    <value>List</value>
+  </data>
+  <data name="InvalidTimeZoneMessage" xml:space="preserve">
+    <value>Could not sign in at this moment. Check the date, time and time zone settings and try to sign in again.</value>
+  </data>
+  <data name="OneAssemblyWasLoadedSeveralTimesErrorMessage" xml:space="preserve">
+    <value>Please, load assembly just one time.
+Next assemblies were loaded several times:
+</value>
   </data>
 </root>

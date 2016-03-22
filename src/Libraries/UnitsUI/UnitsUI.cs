@@ -10,24 +10,19 @@ using System.Xml;
 
 using DSCore;
 
-using DSCoreNodesUI;
-
-using Dynamo;
+using CoreNodeModels;
 using Dynamo.Controls;
-using Dynamo.Core;
+using Dynamo.Graph;
+using Dynamo.Graph.Nodes;
 using Dynamo.Migration;
-using Dynamo.Models;
 using Dynamo.Nodes;
-using Dynamo.UI;
 using Dynamo.UI.Prompts;
-using Dynamo.Utilities;
 using Dynamo.ViewModels;
 using Dynamo.Wpf;
 
 using DynamoUnits;
 using ProtoCore.AST.AssociativeAST;
 using UnitsUI.Properties;
-using ProtoCore.Namespace;
 
 namespace UnitsUI
 {
@@ -214,7 +209,7 @@ namespace UnitsUI
         {
             Measure = Length.FromDouble(0.0, LengthUnit.FractionalFoot);
 
-            OutPortData.Add(new PortData("number", Resources.LengthFromStringPortDataLengthToolTip));
+            OutPortData.Add(new PortData(Resources.LengthFromStringPortDataLengthToolTip, Resources.LengthFromStringPortDataLengthToolTip));
             RegisterAllPorts();
         }
 
@@ -268,7 +263,7 @@ namespace UnitsUI
     [NodeDescription("AreaFromStringDescription",typeof(UnitsUI.Properties.Resources))]
     [NodeSearchTags("AreaFromStringSearchTags", typeof(UnitsUI.Properties.Resources))]
     [IsDesignScriptCompatible]
-    [NodeDeprecatedAttribute]
+    [NodeDeprecated]
     public class AreaFromString : MeasurementInputBase
     {
         public AreaFromString()
@@ -301,7 +296,7 @@ namespace UnitsUI
     [NodeDescription("VolumeFromStringDescription",typeof(UnitsUI.Properties.Resources))]
     [NodeSearchTags("VolumeFromStringSearchTags", typeof(UnitsUI.Properties.Resources))]
     [IsDesignScriptCompatible]
-    [NodeDeprecatedAttribute]
+    [NodeDeprecated]
     public class VolumeFromString : MeasurementInputBase
     {
         public VolumeFromString()

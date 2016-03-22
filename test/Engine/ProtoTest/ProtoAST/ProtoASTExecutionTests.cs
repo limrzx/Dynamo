@@ -363,7 +363,7 @@ namespace ProtoTest.ProtoAST
             // Function Return Type
             ProtoCore.Type returnType = new ProtoCore.Type();
             returnType.Initialize();
-            returnType.UID = (int)ProtoCore.PrimitiveType.kTypeVar;
+            returnType.UID = (int)ProtoCore.PrimitiveType.Var;
             returnType.Name = ProtoCore.DSDefinitions.Keyword.Var;
             funcDefNode.ReturnType = returnType;
 
@@ -413,7 +413,7 @@ namespace ProtoTest.ProtoAST
             arrayList.Add(CreateExprListNodeFromArray(input1));
             arrayList.Add(CreateExprListNodeFromArray(input2));
 
-            ProtoCore.AST.AssociativeAST.ExprListNode arrayExpr = new ProtoCore.AST.AssociativeAST.ExprListNode { list = arrayList };
+            ProtoCore.AST.AssociativeAST.ExprListNode arrayExpr = new ProtoCore.AST.AssociativeAST.ExprListNode { Exprs = arrayList };
 
             ProtoCore.AST.AssociativeAST.BinaryExpressionNode declareNodeA = new ProtoCore.AST.AssociativeAST.BinaryExpressionNode(
                 new ProtoCore.AST.AssociativeAST.IdentifierNode("a"),
@@ -615,7 +615,7 @@ namespace ProtoTest.ProtoAST
             // Function Return Type
             ProtoCore.Type returnType = new ProtoCore.Type();
             returnType.Initialize();
-            returnType.UID = (int)ProtoCore.PrimitiveType.kTypeVar;
+            returnType.UID = (int)ProtoCore.PrimitiveType.Var;
             returnType.Name = ProtoCore.DSDefinitions.Keyword.Var;
             funcDefNode.ReturnType = returnType;
 
@@ -662,7 +662,7 @@ namespace ProtoTest.ProtoAST
             arrayList.Add(CreateExprListNodeFromArray(input1));
             arrayList.Add(CreateExprListNodeFromArray(input2));
 
-            ProtoCore.AST.AssociativeAST.ExprListNode arrayExpr = new ProtoCore.AST.AssociativeAST.ExprListNode { list = arrayList };
+            ProtoCore.AST.AssociativeAST.ExprListNode arrayExpr = new ProtoCore.AST.AssociativeAST.ExprListNode { Exprs = arrayList };
 
             ProtoCore.AST.AssociativeAST.BinaryExpressionNode declareNodeA = new ProtoCore.AST.AssociativeAST.BinaryExpressionNode(
                 new ProtoCore.AST.AssociativeAST.IdentifierNode("a"),
@@ -722,7 +722,7 @@ namespace ProtoTest.ProtoAST
             for (int i = 0; i < intList.Length; i++)
                 listIntNode.Add(new ProtoCore.AST.AssociativeAST.IntNode(intList[i]));
 
-            ProtoCore.AST.AssociativeAST.ExprListNode expr = new ProtoCore.AST.AssociativeAST.ExprListNode { list = listIntNode };
+            ProtoCore.AST.AssociativeAST.ExprListNode expr = new ProtoCore.AST.AssociativeAST.ExprListNode { Exprs = listIntNode };
 
             return expr;
         }
@@ -770,7 +770,7 @@ namespace ProtoTest.ProtoAST
             // Function Return type
             ProtoCore.Type returnType = new ProtoCore.Type();
             returnType.Initialize();
-            returnType.UID = (int)ProtoCore.PrimitiveType.kTypeVar;
+            returnType.UID = (int)ProtoCore.PrimitiveType.Var;
             returnType.Name = ProtoCore.DSDefinitions.Keyword.Var;
             funcDefNode.ReturnType = returnType;
 
@@ -842,7 +842,7 @@ namespace ProtoTest.ProtoAST
             // Build the type of arg1
             ProtoCore.Type arg1Type = new ProtoCore.Type();
             arg1Type.Initialize();
-            arg1Type.UID = (int)ProtoCore.PrimitiveType.kTypeInt;
+            arg1Type.UID = (int)ProtoCore.PrimitiveType.Integer;
             arg1Type.Name = ProtoCore.DSDefinitions.Keyword.Int;
             arg1Decl.ArgumentType = arg1Type;
             funcDefNode.Signature.AddArgument(arg1Decl);
@@ -851,7 +851,7 @@ namespace ProtoTest.ProtoAST
             // Function Return type
             ProtoCore.Type returnType = new ProtoCore.Type();
             returnType.Initialize();
-            returnType.UID = (int)ProtoCore.PrimitiveType.kTypeVar;
+            returnType.UID = (int)ProtoCore.PrimitiveType.Var;
             returnType.Name = ProtoCore.DSDefinitions.Keyword.Var;
             funcDefNode.ReturnType = returnType;
 
@@ -926,7 +926,7 @@ namespace ProtoTest.ProtoAST
             // Build the type of arg1
             ProtoCore.Type arg1Type = new ProtoCore.Type();
             arg1Type.Initialize();
-            arg1Type.UID = (int)ProtoCore.PrimitiveType.kTypeInt;
+            arg1Type.UID = (int)ProtoCore.PrimitiveType.Integer;
             arg1Type.Name = ProtoCore.DSDefinitions.Keyword.Int;
             arg1Decl.ArgumentType = arg1Type;
             funcDefNode.Signature.AddArgument(arg1Decl);
@@ -938,7 +938,7 @@ namespace ProtoTest.ProtoAST
             // Build the type of arg2
             ProtoCore.Type arg2Type = new ProtoCore.Type();
             arg2Type.Initialize();
-            arg2Type.UID = (int)ProtoCore.PrimitiveType.kTypeInt;
+            arg2Type.UID = (int)ProtoCore.PrimitiveType.Integer;
             arg2Type.Name = ProtoCore.DSDefinitions.Keyword.Int;
             arg2Decl.ArgumentType = arg2Type;
             funcDefNode.Signature.AddArgument(arg2Decl);
@@ -947,7 +947,7 @@ namespace ProtoTest.ProtoAST
             // Function Return type
             ProtoCore.Type returnType = new ProtoCore.Type();
             returnType.Initialize();
-            returnType.UID = (int)ProtoCore.PrimitiveType.kTypeVar;
+            returnType.UID = (int)ProtoCore.PrimitiveType.Var;
             returnType.Name = ProtoCore.DSDefinitions.Keyword.Var;
             funcDefNode.ReturnType = returnType;
 
@@ -981,7 +981,7 @@ namespace ProtoTest.ProtoAST
         }
 
         [Test]
-        [Category("DSDefinedClass_Ignored_DSDefinedClassSemantics")]
+        [Ignore][Category("DSDefinedClass_Ignored_DSDefinedClassSemantics")]
         public void TestProtoASTExecute_ClassDecl_PropertyAccess_01()
         {
 
@@ -997,7 +997,7 @@ namespace ProtoTest.ProtoAST
 
             // Create the class node AST
             ProtoCore.AST.AssociativeAST.ClassDeclNode classDefNode = new ProtoCore.AST.AssociativeAST.ClassDeclNode();
-            classDefNode.className = "bar";
+            classDefNode.ClassName = "bar";
 
             // Create the property AST
             ProtoCore.AST.AssociativeAST.VarDeclNode varDeclNode = new ProtoCore.AST.AssociativeAST.VarDeclNode();
@@ -1007,9 +1007,9 @@ namespace ProtoTest.ProtoAST
             {
                 Name = "int",
                 rank = 0,
-                UID = (int)ProtoCore.PrimitiveType.kTypeInt
+                UID = (int)ProtoCore.PrimitiveType.Integer
             };
-            classDefNode.varlist.Add(varDeclNode);
+            classDefNode.Variables.Add(varDeclNode);
 
 
             List<ProtoCore.AST.AssociativeAST.AssociativeNode> astList = new List<ProtoCore.AST.AssociativeAST.AssociativeNode>();
@@ -1063,7 +1063,7 @@ namespace ProtoTest.ProtoAST
         }
 
         [Test]
-        [Category("DSDefinedClass_Ignored_DSDefinedClassSemantics")]
+        [Ignore][Category("DSDefinedClass_Ignored_DSDefinedClassSemantics")]
         public void TestProtoASTExecute_ClassDecl_MemFunctionCall_01()
         {
 
@@ -1111,24 +1111,24 @@ namespace ProtoTest.ProtoAST
             // Function Return type
             ProtoCore.Type returnType = new ProtoCore.Type();
             returnType.Initialize();
-            returnType.UID = (int)ProtoCore.PrimitiveType.kTypeVar;
+            returnType.UID = (int)ProtoCore.PrimitiveType.Var;
             returnType.Name = ProtoCore.DSDefinitions.Keyword.Var;
             funcDefNode.ReturnType = returnType;
 
             // Create the class node AST
             ProtoCore.AST.AssociativeAST.ClassDeclNode classDefNode = new ProtoCore.AST.AssociativeAST.ClassDeclNode();
-            classDefNode.className = "bar";
+            classDefNode.ClassName = "bar";
 
             // Add the member function 'foo'
-            classDefNode.funclist.Add(funcDefNode);
+            classDefNode.Procedures.Add(funcDefNode);
 
 
             // Create the property AST
             ProtoCore.AST.AssociativeAST.VarDeclNode varDeclNode = new ProtoCore.AST.AssociativeAST.VarDeclNode();
             varDeclNode.Name = "f";
             varDeclNode.NameNode = new ProtoCore.AST.AssociativeAST.IdentifierNode("f");
-            varDeclNode.ArgumentType = ProtoCore.TypeSystem.BuildPrimitiveTypeObject(ProtoCore.PrimitiveType.kTypeInt, 0);
-            classDefNode.varlist.Add(varDeclNode);
+            varDeclNode.ArgumentType = ProtoCore.TypeSystem.BuildPrimitiveTypeObject(ProtoCore.PrimitiveType.Integer, 0);
+            classDefNode.Variables.Add(varDeclNode);
 
 
             // Add the constructed class AST
@@ -1409,7 +1409,7 @@ namespace ProtoTest.ProtoAST
 
 
         [Test]
-        [Category("DSDefinedClass_Ignored_DSDefinedClassSemantics")]
+        [Ignore][Category("DSDefinedClass_Ignored_DSDefinedClassSemantics")]
         public void TestCodeGenDS_ClassDecl_PropertyAccess_01()
         {
 
@@ -1419,7 +1419,7 @@ namespace ProtoTest.ProtoAST
 
             // Create the class node AST
             ProtoCore.AST.AssociativeAST.ClassDeclNode classDefNode = new ProtoCore.AST.AssociativeAST.ClassDeclNode();
-            classDefNode.className = "bar";
+            classDefNode.ClassName = "bar";
 
             // Create the property AST
             ProtoCore.AST.AssociativeAST.VarDeclNode varDeclNode = new ProtoCore.AST.AssociativeAST.VarDeclNode();
@@ -1429,9 +1429,9 @@ namespace ProtoTest.ProtoAST
             {
                 Name = "int",
                 rank = 0,
-                UID = (int)ProtoCore.PrimitiveType.kTypeInt
+                UID = (int)ProtoCore.PrimitiveType.Integer
             };
-            classDefNode.varlist.Add(varDeclNode);
+            classDefNode.Variables.Add(varDeclNode);
 
 
             List<ProtoCore.AST.AssociativeAST.AssociativeNode> astList = new List<ProtoCore.AST.AssociativeAST.AssociativeNode>();
@@ -1489,7 +1489,7 @@ namespace ProtoTest.ProtoAST
         }
 
         [Test]
-        [Category("DSDefinedClass_Ignored_DSDefinedClassSemantics")]
+        [Ignore][Category("DSDefinedClass_Ignored_DSDefinedClassSemantics")]
         public void TestCodeGenDS_ClassDecl_MemFunctionCall_01()
         {
 
@@ -1537,16 +1537,16 @@ namespace ProtoTest.ProtoAST
             // Function Return type
             ProtoCore.Type returnType = new ProtoCore.Type();
             returnType.Initialize();
-            returnType.UID = (int)ProtoCore.PrimitiveType.kTypeVar;
+            returnType.UID = (int)ProtoCore.PrimitiveType.Var;
             returnType.Name = ProtoCore.DSDefinitions.Keyword.Var;
             funcDefNode.ReturnType = returnType;
 
             // Create the class node AST
             ProtoCore.AST.AssociativeAST.ClassDeclNode classDefNode = new ProtoCore.AST.AssociativeAST.ClassDeclNode();
-            classDefNode.className = "bar";
+            classDefNode.ClassName = "bar";
 
             // Add the member function 'foo'
-            classDefNode.funclist.Add(funcDefNode);
+            classDefNode.Procedures.Add(funcDefNode);
 
 
             // Create the property AST
@@ -1557,9 +1557,9 @@ namespace ProtoTest.ProtoAST
             {
                 Name = "int",
                 rank = 0,
-                UID = (int)ProtoCore.PrimitiveType.kTypeInt
+                UID = (int)ProtoCore.PrimitiveType.Integer
             };
-            classDefNode.varlist.Add(varDeclNode);
+            classDefNode.Variables.Add(varDeclNode);
 
 
             // Add the constructed class AST
@@ -1633,7 +1633,7 @@ namespace ProtoTest.ProtoAST
             imperativeCodeBlock.Body = imperativeList;
 
             ProtoCore.AST.AssociativeAST.LanguageBlockNode langblock = new ProtoCore.AST.AssociativeAST.LanguageBlockNode();
-            langblock.codeblock = new ProtoCore.LanguageCodeBlock(ProtoCore.Language.kImperative);
+            langblock.codeblock = new ProtoCore.LanguageCodeBlock(ProtoCore.Language.Imperative);
             langblock.CodeBlockNode = imperativeCodeBlock;
 
 
@@ -1713,7 +1713,7 @@ namespace ProtoTest.ProtoAST
             imperativeCodeBlock.Body = imperativeList;
 
             ProtoCore.AST.AssociativeAST.LanguageBlockNode langblock = new ProtoCore.AST.AssociativeAST.LanguageBlockNode();
-            langblock.codeblock = new ProtoCore.LanguageCodeBlock(ProtoCore.Language.kImperative);
+            langblock.codeblock = new ProtoCore.LanguageCodeBlock(ProtoCore.Language.Imperative);
             langblock.CodeBlockNode = imperativeCodeBlock;
 
 
@@ -1808,7 +1808,7 @@ namespace ProtoTest.ProtoAST
             imperativeCodeBlock.Body = imperativeList;
 
             ProtoCore.AST.AssociativeAST.LanguageBlockNode langblock = new ProtoCore.AST.AssociativeAST.LanguageBlockNode();
-            langblock.codeblock = new ProtoCore.LanguageCodeBlock(ProtoCore.Language.kImperative);
+            langblock.codeblock = new ProtoCore.LanguageCodeBlock(ProtoCore.Language.Imperative);
             langblock.CodeBlockNode = imperativeCodeBlock;
 
 
@@ -1856,7 +1856,7 @@ namespace ProtoTest.ProtoAST
             imperativeCodeBlock.Body = imperativeList;
 
             ProtoCore.AST.AssociativeAST.LanguageBlockNode langblock = new ProtoCore.AST.AssociativeAST.LanguageBlockNode();
-            langblock.codeblock = new ProtoCore.LanguageCodeBlock(ProtoCore.Language.kImperative);
+            langblock.codeblock = new ProtoCore.LanguageCodeBlock(ProtoCore.Language.Imperative);
             langblock.CodeBlockNode = imperativeCodeBlock;
 
 
@@ -1933,7 +1933,7 @@ namespace ProtoTest.ProtoAST
             imperativeCodeBlock.Body = imperativeList;
 
             ProtoCore.AST.AssociativeAST.LanguageBlockNode langblock = new ProtoCore.AST.AssociativeAST.LanguageBlockNode();
-            langblock.codeblock = new ProtoCore.LanguageCodeBlock(ProtoCore.Language.kImperative);
+            langblock.codeblock = new ProtoCore.LanguageCodeBlock(ProtoCore.Language.Imperative);
             langblock.CodeBlockNode = imperativeCodeBlock;
 
 
@@ -2025,7 +2025,7 @@ namespace ProtoTest.ProtoAST
             imperativeCodeBlock.Body = imperativeList;
 
             ProtoCore.AST.AssociativeAST.LanguageBlockNode langblock = new ProtoCore.AST.AssociativeAST.LanguageBlockNode();
-            langblock.codeblock = new ProtoCore.LanguageCodeBlock(ProtoCore.Language.kImperative);
+            langblock.codeblock = new ProtoCore.LanguageCodeBlock(ProtoCore.Language.Imperative);
             langblock.CodeBlockNode = imperativeCodeBlock;
 
 
@@ -2051,7 +2051,7 @@ namespace ProtoTest.ProtoAST
             // Build the AST tree
             ProtoCore.AST.AssociativeAST.BinaryExpressionNode assign = new ProtoCore.AST.AssociativeAST.BinaryExpressionNode(
                 new ProtoCore.AST.AssociativeAST.IdentifierNode("x"),
-                new ProtoCore.AST.AssociativeAST.StringNode() { value = "中文字符" });
+                new ProtoCore.AST.AssociativeAST.StringNode() { Value = "中文字符" });
             List<ProtoCore.AST.AssociativeAST.AssociativeNode> astList = new List<ProtoCore.AST.AssociativeAST.AssociativeNode>();
             astList.Add(assign);
 

@@ -1,19 +1,17 @@
 ﻿using System.Collections.Generic;
 using System.Linq;
-
-using Dynamo.Models;
-using Dynamo.Nodes;
-using DSCoreNodesUI.Properties;
-
+using CoreNodeModels.Properties;
+using Dynamo.Graph.Nodes;
 using ProtoCore.AST.AssociativeAST;
 using ProtoCore.DSASM;
 
-namespace DSCoreNodesUI.Logic
+namespace CoreNodeModels.Logic
 {
     [NodeName("If")]
     [NodeCategory(BuiltinNodeCategories.LOGIC)]
-    [NodeDescription("IfDescription", typeof(DSCoreNodesUI.Properties.Resources))]
+    [NodeDescription("IfDescription", typeof(Resources))]
     [IsDesignScriptCompatible]
+    [AlsoKnownAs("DSCoreNodesUI.Logic.If")]
     public class If : NodeModel
     {
         public If()
@@ -53,7 +51,7 @@ namespace DSCoreNodesUI.Logic
                     AstFactory.BuildBooleanNode(true)
                 };
 
-                rhs = AstFactory.BuildFunctionCall("_SingleFunctionObject", inputParams);
+                rhs = AstFactory.BuildFunctionCall("Function", inputParams);
             }
             else
             {

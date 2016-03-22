@@ -1,15 +1,17 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
 using System.Linq;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Controls.Primitives;
 using System.Windows.Input;
+using System.Windows.Threading;
 using Dynamo.Controls;
-using Dynamo.Search.SearchElements;
 using Dynamo.Utilities;
+using Dynamo.ViewModels;
 using Dynamo.Wpf.ViewModels;
-using Dynamo.UI.Controls;
 using Dynamo.Wpf.Utilities;
+
 namespace Dynamo.UI.Views
 {
     /// <summary>
@@ -20,6 +22,11 @@ namespace Dynamo.UI.Views
         // See OnExpanderButtonMouseLeftButtonUp for details.
         private bool ignoreMouseEnter;
         private LibraryDragAndDrop dragDropHelper = new LibraryDragAndDrop();
+
+        private SearchViewModel ViewModel
+        {
+            get { return DataContext as SearchViewModel; }
+        }
 
         public LibraryView()
         {
@@ -295,36 +302,78 @@ namespace Dynamo.UI.Views
 
         private void OnExpanderButtonMouseLeftButtonDown(object sender, MouseButtonEventArgs e)
         {
-            var senderButton = e.OriginalSource as FrameworkElement;
-            if (senderButton != null)
-            {
-                var searchElementVM = senderButton.DataContext as NodeSearchElementViewModel;
+            var searchElementVm = GetDataContext(e.OriginalSource);
 
-                //sender can be RootSearchElementVM or ClassInformationViewModel. 
-                //And we should just fire HandleMouseLeftButtonDown, when ViewModel is NodeSearchElementViewModel
-                if (searchElementVM != null)
-                    dragDropHelper.HandleMouseDown(e.GetPosition(null), searchElementVM);
+            //sender can be RootSearchElementVM or ClassInformationViewModel. 
+            //And we should just fire HandleMouseLeftButtonDown, when ViewModel is NodeSearchElementViewModel
+            if (searchElementVm != null)
+            {
+                dragDropHelper.HandleMouseDown(e.GetPosition(null), searchElementVm);
             }
         }
 
         private void OnExpanderButtonPreviewMouseMove(object sender, MouseEventArgs e)
         {
-            if (e.LeftButton != MouseButtonState.Pressed)
+            if (e.LeftButton != MouseButtonState.Pressed || !(e.OriginalSource is DependencyObject))
                 return;
 
-            var senderButton = e.OriginalSource as FrameworkElement;
-            if (senderButton != null)
-            {
-                var searchElementVM = senderButton.DataContext as NodeSearchElementViewModel;
-
-                //sender can be RootSearchElementVM or ClassInformationViewModel. 
+            var searchElementVm = GetDataContext(e.OriginalSource);
+            
+            //sender can be RootSearchElementVM or ClassInformationViewModel. 
                 //And we should just fire HandleMouseMove, when ViewModel is NodeSearchElementViewModel
-                if (searchElementVM != null)
-                    dragDropHelper.HandleMouseMove(senderButton, e.GetPosition(null));
+            if (searchElementVm != null)
+            {
+                dragDropHelper.HandleMouseMove((DependencyObject)e.OriginalSource, e.GetPosition(null));
             }
+        }
+
+        private NodeSearchElementViewModel GetDataContext(object source)
+        {
+            var frameworkElement = source as FrameworkElement;
+            
+            if (frameworkElement != null)
+            {
+                return frameworkElement.DataContext as NodeSearchElementViewModel;
+            }
+
+            var frameworkContentElement = source as FrameworkContentElement;
+            if (frameworkContentElement != null)
+            {
+                return frameworkContentElement.DataContext as NodeSearchElementViewModel;
+            }
+
+            return null;
         }
 
         #endregion
 
+        private void OnTreeViewItemExpanded(object sender, RoutedEventArgs e)
+        {
+            var treeItem = e.OriginalSource as TreeViewItem;
+            if (treeItem == null) return;
+
+            var treeItemVM = treeItem.DataContext as NodeCategoryViewModel;
+            if (treeItemVM == null) return;
+
+            // Do not fire Dispatcher every time, when some treeview item is expanded.
+            // Here we check that it's really class, that was clicked in search. 
+            if (String.IsNullOrEmpty(ViewModel.ClassNameToBeOpened)
+                || treeItemVM.FullCategoryName != ViewModel.ClassNameToBeOpened) return;
+
+            // We use dispatcher with lower priority in order to wait until UI is rendered.
+            Dispatcher.BeginInvoke(new Action(() =>
+            {
+                var item = e.OriginalSource as TreeViewItem;
+                if (item == null) return;
+
+                var transform = item.TransformToVisual(CategoryTreeView);
+                var positionInScrollViewer = transform.Transform(new Point(0, 0));
+
+                ScrollLibraryViewer.ScrollToVerticalOffset(positionInScrollViewer.Y);
+                ViewModel.ClassNameToBeOpened = String.Empty;
+            }),
+                DispatcherPriority.Loaded, null);
+
+        }
     }
 }

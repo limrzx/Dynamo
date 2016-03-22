@@ -5,6 +5,9 @@ using System.Text;
 using System.Threading.Tasks;
 using NUnit.Framework;
 using System.IO;
+using Dynamo.Graph;
+using Dynamo.Graph.Nodes;
+using Dynamo.Graph.Workspaces;
 using Dynamo.Models;
 using Dynamo.Selection;
 
@@ -306,6 +309,16 @@ namespace Dynamo.Tests
             AssertGraphLayoutLayers(new object[] {
                 new int[] { 2, 1, 2, 3 }
             });
+
+            // Now select two groups and re-run graph layout
+            // The two groups should be two different subgraphs
+            SelectModel(ViewModel.CurrentSpace.Annotations.ElementAt(1));
+            ViewModel.DoGraphAutoLayout(null);
+
+            AssertGraphLayoutLayers(new object[] {
+                new int[] { 2, 1, 2, 3 },
+                new int[] { 1, 1, 2, 3 }
+            });
         }
 
         [Test]
@@ -355,7 +368,7 @@ namespace Dynamo.Tests
             AssertNoOverlap();
         }
 
-        [Test]
+        [Test, Category("Failure")]
         public void GraphLayoutComplex()
         {
             OpenModel(GetDynPath("GraphLayoutComplex.dyn"));
@@ -391,6 +404,27 @@ namespace Dynamo.Tests
 
             AssertNoOverlap();
             AssertMaxCrossings(1);
+        }
+
+        [Test]
+        public void GraphLayoutNoteModels()
+        {
+            OpenModel(GetDynPath("GraphLayoutNotes.dyn"));
+            IEnumerable<NodeModel> nodes = ViewModel.CurrentSpace.Nodes;
+            ViewModel.DoGraphAutoLayout(null);
+
+            AssertNoOverlap();
+        }
+
+        [Test]
+        public void GraphLayoutGroupedNotes()
+        {
+            // for http://adsk-oss.myjetbrains.com/youtrack/issue/MAGN-9216
+            OpenModel(GetDynPath("GraphLayoutGroupedNotes.dyn"));
+            IEnumerable<NodeModel> nodes = ViewModel.CurrentSpace.Nodes;
+
+            SelectModel(ViewModel.CurrentSpace.Annotations.First());
+            ViewModel.DoGraphAutoLayout(null);
         }
 
         #endregion
@@ -442,9 +476,11 @@ namespace Dynamo.Tests
 
         private void AssertNoOverlap()
         {
-            foreach (var a in ViewModel.CurrentSpace.Nodes)
+            var models = ViewModel.CurrentSpace.Nodes.Concat<ModelBase>(ViewModel.CurrentSpace.Notes);
+
+            foreach (var a in models)
             {
-                foreach (var b in ViewModel.CurrentSpace.Nodes)
+                foreach (var b in models)
                 {
                     if (!a.Equals(b) && 
                         (((a.X <= b.X) && (a.Y <= b.Y) && (b.X - a.X <= a.Width) && (b.Y - a.Y <= a.Height)) ||

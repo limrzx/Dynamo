@@ -283,15 +283,12 @@ namespace ProtoCore
         private int FindEndPCForAssocGraphNode(int tempPC, InstructionStream istream, ProcedureNode fNode, GraphNode graphNode, bool handleSSATemps)
         {
             int limit = Constants.kInvalidIndex;
-            //AssociativeGraph.GraphNode currentGraphNode = executingGraphNode;
             GraphNode currentGraphNode = graphNode;
-            //Validity.Assert(currentGraphNode != null);
 
             if (currentGraphNode != null)
             {
                 if (tempPC < currentGraphNode.updateBlock.startpc || tempPC > currentGraphNode.updateBlock.endpc)
                 {
-                    //   return false;
                     return Constants.kInvalidIndex;
                 }
 
@@ -441,7 +438,7 @@ namespace ProtoCore
             {
                 // The inline conditional built-in is created only for associative blocks and needs to be handled separately as below
                 InstructionStream istream = runtimeCore.DSExecutable.instrStreamList[CurrentBlockId];
-                Validity.Assert(istream.language == Language.kAssociative);
+                Validity.Assert(istream.language == Language.Associative);
                 {
                     runtimeCore.DebugProps.InlineConditionOptions.isInlineConditional = true;
                     runtimeCore.DebugProps.InlineConditionOptions.startPc = pc;
@@ -576,12 +573,12 @@ namespace ProtoCore
             {
                 pc = tempPC;
                 istream = runtimeCore.DSExecutable.instrStreamList[runtimeCore.RunningBlock];
-                if (istream.language == Language.kAssociative)
+                if (istream.language == Language.Associative)
                 {
                     limit = FindEndPCForAssocGraphNode(pc, istream, fNode, graphNode, runtimeCore.Options.ExecuteSSA);
                     //Validity.Assert(limit != ProtoCore.DSASM.Constants.kInvalidIndex);
                 }
-                else if (istream.language == Language.kImperative)
+                else if (istream.language == Language.Imperative)
                 {
                     // Check for 'SETEXPUID' instruction to check for end of expression
                     while (++pc < istream.instrList.Count)
@@ -620,8 +617,7 @@ namespace ProtoCore
                 {
                     Instruction instr = istream.instrList[pc];
                     // We still want to break at the closing brace of a function or ctor call or language block
-                    if (instr.debug != null && instr.opCode != OpCode.RETC && instr.opCode != OpCode.RETURN && 
-                        (instr.opCode != OpCode.RETB)) 
+                    if (instr.debug != null && instr.opCode != OpCode.RETURN && (instr.opCode != OpCode.RETB)) 
                     {
                         if (runtimeCore.Breakpoints.Contains(instr))
                             runtimeCore.Breakpoints.Remove(instr);
@@ -635,11 +631,11 @@ namespace ProtoCore
     {
         public enum State
         {
-            kInvalid = -1,
-            kExecutionBegin,
-            kExecutionEnd,
-            kExecutionBreak,
-            kExecutionResume,
+            Invalid = -1,
+            ExecutionBegin,
+            ExecutionEnd,
+            ExecutionBreak,
+            ExecutionResume,
         }
 
         public ExecutionStateEventArgs(State state)

@@ -61,14 +61,13 @@ namespace ProtoTestFx
             // Specify some of the requirements of IDE.
             var options = new ProtoCore.Options();
             options.ExecutionMode = ProtoCore.ExecutionMode.Serial;
-            options.SuppressBuildOutput = false;
 
             string testPath = @"..\..\..\test\Engine\ProtoTest\ImportFiles\";
             options.IncludeDirectories.Add(testPath);
 
             core = new ProtoCore.Core(options);
-            core.Compilers.Add(ProtoCore.Language.kAssociative, new ProtoAssociative.Compiler(core));
-            core.Compilers.Add(ProtoCore.Language.kImperative, new ProtoImperative.Compiler(core));
+            core.Compilers.Add(ProtoCore.Language.Associative, new ProtoAssociative.Compiler(core));
+            core.Compilers.Add(ProtoCore.Language.Imperative, new ProtoImperative.Compiler(core));
 
             fsr = new ProtoScriptRunner();
 
@@ -77,7 +76,7 @@ namespace ProtoTestFx
 
             //Run
 
-            fsr.Execute(code, core, out runtimeCore);
+            runtimeCore = fsr.Execute(code, core);
 
             return core;
         }
@@ -90,15 +89,14 @@ namespace ProtoTestFx
             // Specify some of the requirements of IDE.
             var options = new ProtoCore.Options();
             options.ExecutionMode = ProtoCore.ExecutionMode.Serial;
-            options.SuppressBuildOutput = false;
             options.GCTempVarsOnDebug = false;
 
             string testPath = @"..\..\..\test\Engine\ProtoTest\ImportFiles\";
             options.IncludeDirectories.Add(testPath);
 
             core = new ProtoCore.Core(options);
-            core.Compilers.Add(ProtoCore.Language.kAssociative, new ProtoAssociative.Compiler(core));
-            core.Compilers.Add(ProtoCore.Language.kImperative, new ProtoImperative.Compiler(core));
+            core.Compilers.Add(ProtoCore.Language.Associative, new ProtoAssociative.Compiler(core));
+            core.Compilers.Add(ProtoCore.Language.Imperative, new ProtoImperative.Compiler(core));
 
             fsr = new DebugRunner(core);
 
@@ -125,15 +123,14 @@ namespace ProtoTestFx
              // Specify some of the requirements of IDE.
             var options = new ProtoCore.Options();
             options.ExecutionMode = ProtoCore.ExecutionMode.Serial;
-            options.SuppressBuildOutput = false;
             options.GCTempVarsOnDebug = false;
 
             string testPath = @"..\..\..\test\Engine\ProtoTest\ImportFiles\";
             options.IncludeDirectories.Add(testPath);
 
             core = new ProtoCore.Core(options);
-            core.Compilers.Add(ProtoCore.Language.kAssociative, new ProtoAssociative.Compiler(core));
-            core.Compilers.Add(ProtoCore.Language.kImperative, new ProtoImperative.Compiler(core));
+            core.Compilers.Add(ProtoCore.Language.Associative, new ProtoAssociative.Compiler(core));
+            core.Compilers.Add(ProtoCore.Language.Imperative, new ProtoImperative.Compiler(core));
 
 
             fsr = new DebugRunner(core);
@@ -164,15 +161,14 @@ namespace ProtoTestFx
             // Specify some of the requirements of IDE.
             var options = new ProtoCore.Options();
             options.ExecutionMode = ProtoCore.ExecutionMode.Serial;
-            options.SuppressBuildOutput = false;
             options.GCTempVarsOnDebug = false;
 
             string testPath = @"..\..\..\test\Engine\ProtoTest\ImportFiles\";
             options.IncludeDirectories.Add(testPath);
 
             core = new ProtoCore.Core(options);
-            core.Compilers.Add(ProtoCore.Language.kAssociative, new ProtoAssociative.Compiler(core));
-            core.Compilers.Add(ProtoCore.Language.kImperative, new ProtoImperative.Compiler(core));
+            core.Compilers.Add(ProtoCore.Language.Associative, new ProtoAssociative.Compiler(core));
+            core.Compilers.Add(ProtoCore.Language.Imperative, new ProtoImperative.Compiler(core));
 
             fsr = new DebugRunner(core);
 

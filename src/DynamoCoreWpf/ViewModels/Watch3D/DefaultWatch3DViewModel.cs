@@ -3,20 +3,25 @@ using System.Collections.Generic;
 using System.Collections.Specialized;
 using System.ComponentModel;
 using System.Linq;
+using System.Windows;
 using System.Windows.Input;
 using System.Windows.Media;
+using System.Windows.Media.Media3D;
 using System.Xml;
 using Autodesk.DesignScript.Interfaces;
 using Dynamo.Core;
-using Dynamo.Core.Threading;
+using Dynamo.Graph.Connectors;
+using Dynamo.Graph.Nodes;
+using Dynamo.Graph.Workspaces;
 using Dynamo.Interfaces;
+using Dynamo.Logging;
 using Dynamo.Models;
+using Dynamo.Scheduler;
 using Dynamo.Selection;
-using Dynamo.Services;
 using Dynamo.UI.Commands;
 using Dynamo.ViewModels;
+using Dynamo.Visualization;
 using Dynamo.Wpf.Properties;
-using HelixToolkit.Wpf.SharpDX;
 
 namespace Dynamo.Wpf.ViewModels.Watch3D
 {
@@ -61,6 +66,7 @@ namespace Dynamo.Wpf.ViewModels.Watch3D
 
         protected List<NodeModel> recentlyAddedNodes = new List<NodeModel>();
         protected bool active;
+        protected bool isGridVisible;
         private readonly List<IRenderPackage> currentTaggedPackages = new List<IRenderPackage>();
 
         /// <summary>
@@ -84,6 +90,27 @@ namespace Dynamo.Wpf.ViewModels.Watch3D
                 RaisePropertyChanged("Active");
 
                 OnActiveStateChanged();
+
+                if (active)
+                {
+                    RegenerateAllPackages();
+                }
+            }
+        }
+
+        /// <summary>
+        /// A flag indicating whether the grid is visible in 3D.
+        /// </summary>
+        public virtual bool IsGridVisible
+        {
+            get { return isGridVisible; }
+            set
+            {
+                if (isGridVisible == value) return;
+
+                isGridVisible = value;
+                preferences.IsBackgroundGridVisible = value;
+                RaisePropertyChanged("IsGridVisible");
             }
         }
 
@@ -139,6 +166,8 @@ namespace Dynamo.Wpf.ViewModels.Watch3D
 
         public DelegateCommand ToggleCanNavigateBackgroundCommand { get; set; }
 
+        public DelegateCommand ZoomToFitCommand { get; set; }
+
         internal WorkspaceViewModel CurrentSpaceViewModel
         {
             get
@@ -189,6 +218,7 @@ namespace Dynamo.Wpf.ViewModels.Watch3D
 
             Name = Resources.BackgroundPreviewDefaultName;
             Active = parameters.Preferences.IsBackgroundPreviewActive;
+            isGridVisible = parameters.Preferences.IsBackgroundGridVisible;
             logger = parameters.Logger;
 
             RegisterEventHandlers();
@@ -196,7 +226,7 @@ namespace Dynamo.Wpf.ViewModels.Watch3D
             TogglePanCommand = new DelegateCommand(TogglePan, CanTogglePan);
             ToggleOrbitCommand = new DelegateCommand(ToggleOrbit, CanToggleOrbit);
             ToggleCanNavigateBackgroundCommand = new DelegateCommand(ToggleCanNavigateBackground, CanToggleCanNavigateBackground);
-
+            ZoomToFitCommand = new DelegateCommand(ZoomToFit, CanZoomToFit);
             CanBeActivated = true;
         }
 
@@ -236,12 +266,33 @@ namespace Dynamo.Wpf.ViewModels.Watch3D
         private void RegisterEventHandlers()
         {
             DynamoSelection.Instance.Selection.CollectionChanged += SelectionChangedHandler;
+            PropertyChanged += OnPropertyChanged;
 
             LogVisualizationCapabilities();
 
             RegisterModelEventhandlers(model);
 
             RegisterWorkspaceEventHandlers(model);
+        }
+
+        /// <summary>
+        /// Event to be handled when the background preview is toggled on or off
+        /// On/off state is passed using the bool parameter
+        /// </summary>
+        public event Action<bool> CanNavigateBackgroundPropertyChanged;
+
+        private void OnPropertyChanged(object sender, PropertyChangedEventArgs propertyChangedEventArgs)
+        {
+            switch (propertyChangedEventArgs.PropertyName)
+            {
+                case "CanNavigateBackground":
+                    var handler = CanNavigateBackgroundPropertyChanged;
+                    if (handler != null)
+                    {
+                        handler(CanNavigateBackground);
+                    }
+                    break;
+            }
         }
 
         private void UnregisterEventHandlers()
@@ -392,15 +443,64 @@ namespace Dynamo.Wpf.ViewModels.Watch3D
         private void OnNodeRemovedFromWorkspace(NodeModel node)
         {
             UnregisterNodeEventHandlers(node);
-            DeleteGeometryForIdentifier(node.AstIdentifierBase);
+            DeleteGeometryForNode(node);
         }
 
-        public virtual void AddGeometryForRenderPackages(IEnumerable<IRenderPackage> packages)
+        public virtual CameraData GetCameraInformation()
+        {
+            // Override in derived classes.
+            return null;
+        }
+
+        /// <summary>
+        /// Call this method to remove render pakcages that created by node.
+        /// </summary>
+        /// <param name="node"></param>
+        public virtual void RemoveGeometryForNode(NodeModel node)
         {
             // Override in inherited classes.
         }
 
+        /// <summary>
+        /// Call this method to add the render package. 
+        /// </summary>
+        /// <param name="packages"></param>
+        /// <param name="forceAsyncCall"></param>
+        public virtual void AddGeometryForRenderPackages(IEnumerable<IRenderPackage> packages, bool forceAsyncCall = false)
+        {
+            // Override in inherited classes.
+        }
+
+        public virtual void AddLabelForPath(string path)
+        {
+            // Override in inherited classes.
+        }
+
+        public void Invoke(Action action)
+        {
+            var dynamoViewModel = viewModel as DynamoViewModel;
+            if (dynamoViewModel != null)
+            {
+                dynamoViewModel.UIDispatcher.Invoke(action);
+            }
+        }
+
+        public virtual void DeleteGeometryForNode(NodeModel node, bool requestUpdate = true)
+        {
+            // Override in derived classes.
+        }
+
         public virtual void DeleteGeometryForIdentifier(string identifier, bool requestUpdate = true)
+        {
+            // Override in derived classes.
+        }
+
+        public virtual void HighlightNodeGraphics(IEnumerable<NodeModel> nodes)
+        {
+            // Override in derived classes.
+        }
+
+        public virtual void UnHighlightNodeGraphics(IEnumerable<NodeModel> nodes)
         {
             // Override in derived classes.
         }
@@ -423,20 +523,14 @@ namespace Dynamo.Wpf.ViewModels.Watch3D
 
         protected void RegisterPortEventHandlers(NodeModel node)
         {
-            foreach (var p in node.InPorts)
-            {
-                p.PortDisconnected += PortDisconnectedHandler;
-                p.PortConnected += PortConnectedHandler;
-            }
+            node.PortConnected += PortConnectedHandler;
+            node.PortDisconnected += PortDisconnectedHandler;
         }
 
         private void UnregisterPortEventHandlers(NodeModel node)
         {
-            foreach (var p in node.InPorts)
-            {
-                p.PortDisconnected -= PortDisconnectedHandler;
-                p.PortConnected -= PortConnectedHandler;
-            }
+            node.PortConnected -= PortConnectedHandler;
+            node.PortDisconnected -= PortDisconnectedHandler;
         }
 
         protected virtual void PortConnectedHandler(PortModel arg1, ConnectorModel arg2)
@@ -446,7 +540,10 @@ namespace Dynamo.Wpf.ViewModels.Watch3D
 
         protected virtual void PortDisconnectedHandler(PortModel port)
         {
-            DeleteGeometryForIdentifier(port.Owner.AstIdentifierBase);
+            if (port.PortType == PortType.Input)
+            {
+                DeleteGeometryForIdentifier(port.Owner.AstIdentifierBase);
+            }
         }
 
         protected virtual void SelectionChangedHandler(object sender, NotifyCollectionChangedEventArgs e)
@@ -471,18 +568,39 @@ namespace Dynamo.Wpf.ViewModels.Watch3D
             // Override in derived classes
         }
 
-        internal event Func<MouseEventArgs, Ray3D> RequestClickRay;
-        public Ray3D GetClickRay(MouseEventArgs args)
+        internal event Func<MouseEventArgs, IRay> RequestClickRay;
+
+        /// <summary>
+        /// Returns a 3D ray from the camera to the given mouse location
+        /// in world coordinates that can be used to perform a hit-test 
+        /// on objects in the view
+        /// </summary>
+        /// <param name="args">mouse click location in screen coordinates</param>
+        /// <returns></returns>
+        public IRay GetClickRay(MouseEventArgs args)
         {
             return RequestClickRay != null ? RequestClickRay(args) : null;
+        }
+
+        internal event Func<Point3D> RequestCameraPosition;
+
+        public Point3D? GetCameraPosition()
+        {
+            var handler = RequestCameraPosition;
+            if (handler != null) return handler();
+            return null;
         }
 
         public event Action<object, MouseButtonEventArgs> ViewMouseDown;
         internal void OnViewMouseDown(object sender, MouseButtonEventArgs e)
         {
+            HandleViewClick(sender, e);
             var handler = ViewMouseDown;
             if (handler != null) handler(sender, e);
         }
+
+        protected virtual void HandleViewClick(object sender, MouseButtonEventArgs e)
+        { }
 
         public event Action<object, MouseButtonEventArgs> ViewMouseUp;
         internal void OnViewMouseUp(object sender, MouseButtonEventArgs e)
@@ -496,6 +614,14 @@ namespace Dynamo.Wpf.ViewModels.Watch3D
         {
             var handler = ViewMouseMove;
             if (handler != null) handler(sender, e);
+        }
+
+        public event Action<object, RoutedEventArgs> ViewCameraChanged;
+
+        internal void OnViewCameraChanged(object sender, RoutedEventArgs args)
+        {
+            var handler = ViewCameraChanged;
+            if (handler != null) handler(sender, args);
         }
 
         protected virtual void OnNodePropertyChanged(object sender, PropertyChangedEventArgs e)
@@ -560,10 +686,20 @@ namespace Dynamo.Wpf.ViewModels.Watch3D
             InstrumentationLogger.LogAnonymousScreen(CanNavigateBackground ? "Geometry" : "Nodes");
         }
 
-        private bool CanToggleCanNavigateBackground(object parameter)
+        protected virtual bool CanToggleCanNavigateBackground(object parameter)
+        {
+            return false;
+        }
+
+        private static bool CanZoomToFit(object parameter)
         {
             return true;
         }
+
+        protected virtual void ZoomToFit(object parameter)
+        {
+            // Override in derived classes to specify zoom to fit behavior.
+        } 
 
         #endregion
     }

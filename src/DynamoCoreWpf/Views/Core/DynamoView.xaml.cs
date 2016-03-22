@@ -1,6 +1,5 @@
 using System;
 using System.ComponentModel;
-using System.Collections.Generic;
 using System.Collections.Specialized;
 using System.IO;
 using System.Linq;
@@ -19,7 +18,6 @@ using Dynamo.PackageManager;
 using Dynamo.PackageManager.UI;
 using Dynamo.Search;
 using Dynamo.Selection;
-using Dynamo.UI;
 using Dynamo.Utilities;
 using Dynamo.ViewModels;
 using Dynamo.Wpf;
@@ -31,6 +29,11 @@ using System.Windows.Data;
 using Dynamo.UI.Controls;
 using System.Windows.Controls.Primitives;
 using System.Windows.Media;
+using Dynamo.Configuration;
+using Dynamo.Graph.Nodes;
+using Dynamo.Graph.Notes;
+using Dynamo.Graph.Presets;
+using Dynamo.Graph.Workspaces;
 using Dynamo.Services;
 using Dynamo.Wpf.Utilities;
 using Dynamo.Logging;
@@ -39,8 +42,9 @@ using ResourceNames = Dynamo.Wpf.Interfaces.ResourceNames;
 using Dynamo.Wpf.ViewModels.Core;
 using Dynamo.Wpf.Views.Gallery;
 using Dynamo.Wpf.Extensions;
-using Dynamo.Interfaces;
 using Dynamo.Wpf.Views.PackageManager;
+using Dynamo.Views;
+using System.Collections.Generic;
 
 namespace Dynamo.Controls
 {
@@ -50,6 +54,9 @@ namespace Dynamo.Controls
     public partial class DynamoView : Window, IDisposable
     {
         public const string BackgroundPreviewName = "BackgroundPreview";
+        private const int navigationInterval = 100;
+        // This is used to determine whether ESC key is being held down
+        private bool IsEscKeyPressed = false;
 
         private readonly NodeViewCustomizationLibrary nodeViewCustomizationLibrary;
         private DynamoViewModel dynamoViewModel;
@@ -127,7 +134,12 @@ namespace Dynamo.Controls
                 dynamoViewModel.Model.AuthenticationManager.AuthProvider.RequestLogin += loginService.ShowLogin;
             }
 
-            var viewExtensions = viewExtensionManager.ExtensionLoader.LoadDirectory(dynamoViewModel.Model.PathManager.ViewExtensionsDirectory);
+            var viewExtensions = new List<IViewExtension>();
+            foreach (var dir in dynamoViewModel.Model.PathManager.ViewExtensionsDirectories)
+            {
+                viewExtensions.AddRange(viewExtensionManager.ExtensionLoader.LoadDirectory(dir));
+            }
+
             viewExtensionManager.MessageLogged += Log;
 
             var startupParams = new ViewStartupParams(dynamoViewModel);
@@ -148,6 +160,95 @@ namespace Dynamo.Controls
                     Log(ext.Name + ": " + exc.Message);
                 }
             }
+
+            this.dynamoViewModel.RequestPaste += OnRequestPaste;
+            this.dynamoViewModel.RequestReturnFocusToView += OnRequestReturnFocusToView;
+            FocusableGrid.InputBindings.Clear();
+        }
+
+        private void OnRequestReturnFocusToView()
+        {
+            // focusing grid allows to remove focus from current textbox
+            FocusableGrid.Focus();
+            // keep handling input bindings of DynamoView
+            Keyboard.Focus(this);
+        }
+
+        private void OnRequestPaste()
+        {
+            var clipBoard = dynamoViewModel.Model.ClipBoard;
+            var locatableModels = clipBoard.Where(item => item is NoteModel || item is NodeModel);
+
+            var modelBounds = locatableModels.Select(lm =>
+                new Rect {X = lm.X, Y = lm.Y, Height = lm.Height, Width = lm.Width});
+
+            // Find workspace view.
+            var workspace = this.ChildOfType<WorkspaceView>();
+            var workspaceBounds = workspace.GetVisibleBounds();
+
+            // is at least one note/node located out of visible workspace part
+            var outOfView = modelBounds.Any(m => !workspaceBounds.Contains(m));
+
+            // If copied nodes are out of view, we paste their copies under mouse cursor or at the center of workspace.
+            if (outOfView)
+            {
+                // If mouse is over workspace, paste copies under mouse cursor.
+                if (workspace.IsMouseOver)
+                {
+                    dynamoViewModel.Model.Paste(Mouse.GetPosition(workspace.WorkspaceElements).AsDynamoType(), false);
+                }
+                else // If mouse is out of workspace view, then paste copies at the center.
+                {
+                    PasteNodeAtTheCenter(workspace);
+                }
+
+                return;
+            }
+
+            // All nodes are inside of workspace and visible for user.
+            // Order them by CenterX and CenterY.
+            var orderedItems = locatableModels.OrderBy(item => item.CenterX + item.CenterY);
+
+            // Search for the rightmost item. It's item with the biggest X, Y coordinates of center.
+            var rightMostItem = orderedItems.Last();
+            // Search for the leftmost item. It's item with the smallest X, Y coordinates of center.
+            var leftMostItem = orderedItems.First();
+
+            // Compute shift so that left most item will appear at right most item place with offset.
+            var shiftX = rightMostItem.X + rightMostItem.Width - leftMostItem.X;
+            var shiftY = rightMostItem.Y - leftMostItem.Y;
+
+            // Find new node bounds.
+            var newNodeBounds = modelBounds
+                .Select(node => new Rect(node.X + shiftX + workspace.ViewModel.Model.CurrentPasteOffset,
+                                         node.Y + shiftY + workspace.ViewModel.Model.CurrentPasteOffset,
+                                         node.Width, node.Height));
+
+            outOfView = newNodeBounds.Any(node => !workspaceBounds.Contains(node));
+
+            // If new node bounds appeare out of workspace view, we should paste them at the center.
+            if (outOfView)
+            {
+                PasteNodeAtTheCenter(workspace);
+                return;
+            }
+
+            var x = shiftX + locatableModels.Min(m => m.X);
+            var y = shiftY + locatableModels.Min(m => m.Y);
+
+            // All copied nodes are inside of workspace.
+            // Paste them with little offset.           
+            dynamoViewModel.Model.Paste(new Point2D(x, y));
+        }
+
+        /// <summary>
+        /// Paste nodes at the center of workspace view.
+        /// </summary>
+        /// <param name="workspace">workspace view</param>
+        private void PasteNodeAtTheCenter(WorkspaceView workspace)
+        {
+            var centerPoint = workspace.GetCenterPoint().AsDynamoType();
+            dynamoViewModel.Model.Paste(centerPoint);
         }
 
         #region NodeViewCustomization
@@ -356,6 +457,11 @@ namespace Dynamo.Controls
             switch (e.ViewOperation)
             {
                 case ViewOperationEventArgs.Operation.FitView:
+                    if (dynamoViewModel.BackgroundPreviewViewModel != null)
+                    {
+                        dynamoViewModel.BackgroundPreviewViewModel.ZoomToFitCommand.Execute(null);
+                        return;
+                    }
                     BackgroundPreview.View.ZoomExtents();
                     break;
 
@@ -682,8 +788,7 @@ namespace Dynamo.Controls
         {
             dynamoViewModel.CopyCommand.RaiseCanExecuteChanged();
             dynamoViewModel.PasteCommand.RaiseCanExecuteChanged();
-            dynamoViewModel.NodeFromSelectionCommand.RaiseCanExecuteChanged();
-
+            dynamoViewModel.NodeFromSelectionCommand.RaiseCanExecuteChanged();           
         }
 
         void Controller_RequestsCrashPrompt(object sender, CrashPromptArgs args)
@@ -1031,25 +1136,42 @@ namespace Dynamo.Controls
 
             var vm = dynamoViewModel.BackgroundPreviewViewModel;
 
-            if (e.IsRepeat)
+
+            // ESC key to navigate has long lag on some machines.
+            // This issue was caused by using KeyEventArgs.IsRepeated API
+            // In order to fix this we need to use our own extension method DelayInvoke to determine
+            // whether ESC key is being held down or not
+            if (!IsEscKeyPressed && !vm.NavigationKeyIsDown)
             {
-                vm.NavigationKeyIsDown = true;
-            }
+                IsEscKeyPressed = true;
+                dynamoViewModel.UIDispatcher.DelayInvoke(navigationInterval, () =>
+                {
+                    if (IsEscKeyPressed)
+                    {
+                        vm.NavigationKeyIsDown = true;
+                    }
+                });
+            }           
+
             else
             {
                 vm.CancelNavigationState();
             }
-            
+
             e.Handled = true;
         }
 
         void DynamoView_KeyUp(object sender, KeyEventArgs e)
         {
-            if (e.Key != Key.Escape || !dynamoViewModel.BackgroundPreviewViewModel.CanNavigateBackground) return;
+            if (e.Key != Key.Escape) return;
 
-            dynamoViewModel.BackgroundPreviewViewModel.NavigationKeyIsDown = false;
-            dynamoViewModel.EscapeCommand.Execute(null);
-            e.Handled = true;
+            IsEscKeyPressed = false;
+            if (dynamoViewModel.BackgroundPreviewViewModel.CanNavigateBackground)
+            {
+                dynamoViewModel.BackgroundPreviewViewModel.NavigationKeyIsDown = false;
+                dynamoViewModel.EscapeCommand.Execute(null);
+                e.Handled = true;
+            }            
         }
 
         private void WorkspaceTabs_SelectionChanged(object sender, SelectionChangedEventArgs e)

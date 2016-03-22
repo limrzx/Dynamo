@@ -1,22 +1,22 @@
 ﻿using System.Collections.Generic;
 using System.Linq;
-using Dynamo.Models;
-using Dynamo.Nodes;
-using DSCoreNodesUI.Properties;
+using CoreNodeModels.Properties;
+using Dynamo.Graph.Nodes;
 using ProtoCore.AST.AssociativeAST;
 
-namespace DSCoreNodesUI
+namespace CoreNodeModels
 {
     [NodeName("List.Create")]
-    [NodeDescription("ListCreateDescription", typeof(DSCoreNodesUI.Properties.Resources))]
-    [NodeSearchTags("ListCreateSearchTags", typeof(DSCoreNodesUI.Properties.Resources))]
+    [NodeDescription("ListCreateDescription", typeof(Resources))]
+    [NodeSearchTags("ListCreateSearchTags", typeof(Resources))]
     [NodeCategory(BuiltinNodeCategories.CORE_LISTS_CREATE)]
     [IsDesignScriptCompatible]
+    [AlsoKnownAs("DSCoreNodesUI.CreateList")]
     public class CreateList : VariableInputNode
     {
         public CreateList()
         {
-            InPortData.Add(new PortData("index0", Resources.CreateListPortDataIndex0ToolTip));
+            InPortData.Add(new PortData("item0", Resources.CreateListPortDataIndex0ToolTip));
             OutPortData.Add(new PortData("list", Resources.CreateListPortDataResultToolTip));
 
             RegisterAllPorts();
@@ -26,7 +26,7 @@ namespace DSCoreNodesUI
 
         protected override string GetInputName(int index)
         {
-            return "index" + index;
+            return "item" + index;
         }
 
         protected override string GetInputTooltip(int index)
@@ -75,7 +75,7 @@ namespace DSCoreNodesUI
                 {
                     AstFactory.BuildAssignment(
                         GetAstIdentifierForOutputIndex(0),
-                        AstFactory.BuildFunctionCall("_SingleFunctionObject", inputParams))
+                        AstFactory.BuildFunctionCall("Function", inputParams))
                 };
             }
 

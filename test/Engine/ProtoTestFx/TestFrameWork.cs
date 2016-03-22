@@ -241,8 +241,8 @@ namespace ProtoTestFx.TD
 
             testCore.Configurations.Add(ConfigurationKeys.GeometryFactory, "DSGeometry.dll");
             testCore.Configurations.Add(ConfigurationKeys.PersistentManager, "DSGeometry.dll");
-            testCore.Compilers.Add(ProtoCore.Language.kAssociative, new ProtoAssociative.Compiler(testCore));
-            testCore.Compilers.Add(ProtoCore.Language.kImperative, new ProtoImperative.Compiler(testCore));
+            testCore.Compilers.Add(ProtoCore.Language.Associative, new ProtoAssociative.Compiler(testCore));
+            testCore.Compilers.Add(ProtoCore.Language.Imperative, new ProtoImperative.Compiler(testCore));
 
             // this setting is to fix the random failure of replication test case
             testCore.Options.ExecutionMode = ProtoCore.ExecutionMode.Serial;
@@ -284,8 +284,8 @@ namespace ProtoTestFx.TD
         public ProtoCore.Core CreateTestCore()
         {
             ProtoCore.Core core = new ProtoCore.Core(new ProtoCore.Options());
-            core.Compilers.Add(ProtoCore.Language.kAssociative, new ProtoAssociative.Compiler(core));
-            core.Compilers.Add(ProtoCore.Language.kImperative, new ProtoImperative.Compiler(core));
+            core.Compilers.Add(ProtoCore.Language.Associative, new ProtoAssociative.Compiler(core));
+            core.Compilers.Add(ProtoCore.Language.Imperative, new ProtoImperative.Compiler(core));
             core.Options.ExecutionMode = ProtoCore.ExecutionMode.Serial;
             core.ParsingMode = ProtoCore.ParseMode.AllowNonAssignment;
             core.IsParsingCodeBlockNode = true;
@@ -355,7 +355,8 @@ namespace ProtoTestFx.TD
                     Console.WriteLine(String.Format("Path: {0} does not exist.", includePath));
                 }
             }
-            testMirror = runner.LoadAndExecute(pathname, testCore, out testRuntimeCore);
+            testRuntimeCore = runner.LoadAndExecute(pathname, testCore);
+            testMirror = testRuntimeCore.Mirror;
             SetErrorMessage(errorstring);
             return testMirror;
         }
@@ -445,7 +446,8 @@ namespace ProtoTestFx.TD
                         Console.WriteLine(String.Format("Path: {0} does not exist.", includePath));
                     }
                 }
-                testMirror = runner.Execute(sourceCode, testCore, out testRuntimeCore);
+                testRuntimeCore = runner.Execute(sourceCode, testCore);
+                testMirror = testRuntimeCore.Mirror;
                 
                 if (dumpDS )
                 {
@@ -568,7 +570,7 @@ namespace ProtoTestFx.TD
             else if (expectedObject is Int32 || expectedObject is Int64)
             {
                 Int64 expectedValue = Convert.ToInt64(expectedObject);
-                if (dsObject.Type.UID != (int)ProtoCore.PrimitiveType.kTypeInt)
+                if (dsObject.Type.UID != (int)ProtoCore.PrimitiveType.Integer)
                 {
                     Assert.Fail(String.Format("\t{0}{1} is expected to be {2}, but its actual value is not an integer. \n{2}", dsVariable, 
                         BuildIndicesString(indices), expectedValue, mErrorMessage));
@@ -581,7 +583,7 @@ namespace ProtoTestFx.TD
             else if (expectedObject is Double)
             {
                 Double expectedValue = Convert.ToDouble(expectedObject);
-                if (dsObject.Type.UID != (int)ProtoCore.PrimitiveType.kTypeDouble)
+                if (dsObject.Type.UID != (int)ProtoCore.PrimitiveType.Double)
                 {
                     Assert.Fail(String.Format("\t{0}{1} is expected to be {2}, but its actual value is not a double. \n{3}", dsVariable, 
                         BuildIndicesString(indices), expectedValue, mErrorMessage));
@@ -608,7 +610,7 @@ namespace ProtoTestFx.TD
             else if (expectedObject is Boolean)
             {
                 Boolean expectedValue = Convert.ToBoolean(expectedObject);
-                if (dsObject.Type.UID != (int)ProtoCore.PrimitiveType.kTypeBool)
+                if (dsObject.Type.UID != (int)ProtoCore.PrimitiveType.Bool)
                 {
                     Assert.Fail(String.Format("\t{0}{1} is expected to be {2}, but its actual type is not bool. \n{3}", dsVariable, 
                         BuildIndicesString(indices), expectedValue, mErrorMessage));
@@ -622,7 +624,7 @@ namespace ProtoTestFx.TD
             {
                 Char expectedValue = Convert.ToChar(expectedObject);
 
-                if (dsObject.Type.UID != (int)ProtoCore.PrimitiveType.kTypeChar)
+                if (dsObject.Type.UID != (int)ProtoCore.PrimitiveType.Char)
                 {
                     Assert.Fail(String.Format("\t{0}{1} is expected to be {2}, but its actual type is not char. \n{3}", dsVariable, BuildIndicesString(indices), expectedValue, mErrorMessage));
                 }
@@ -709,7 +711,7 @@ namespace ProtoTestFx.TD
             }
 
             ProtoCore.DSASM.ClassNode thisClass = testCore.ClassTable.ClassNodes[classIndex];
-            if (!thisClass.ProcTable.procList.Exists(memberFunc => String.Compare(memberFunc.Name, methodName) == 0))
+            if (!thisClass.ProcTable.Procedures.Exists(memberFunc => String.Compare(memberFunc.Name, methodName) == 0))
             {
                 if(doAssert)
                     Assert.Fail(string.Format("\tMethod \"{0}.{1}\" doesn't exist \n{2}", className, methodName, mErrorMessage)); 
@@ -892,7 +894,7 @@ namespace ProtoTestFx.TD
 
         public static Subtree CreateSubTreeFromCode(Guid guid, string code)
         {
-            var cbn = ProtoCore.Utils.ParserUtils.Parse(code) as CodeBlockNode;
+            var cbn = ProtoCore.Utils.ParserUtils.Parse(code);
             var subtree = null == cbn ? new Subtree(null, guid) : new Subtree(cbn.Body, guid);
             return subtree;
         }

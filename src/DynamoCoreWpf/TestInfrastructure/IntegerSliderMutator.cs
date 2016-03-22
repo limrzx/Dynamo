@@ -7,6 +7,8 @@ using System.Reflection;
 using System.IO;
 using System.Threading;
 using Dynamo.Engine;
+using Dynamo.Graph;
+using Dynamo.Graph.Nodes;
 
 namespace Dynamo.TestInfrastructure
 {
@@ -22,7 +24,7 @@ namespace Dynamo.TestInfrastructure
         {
             string assemblyPath = Assembly.GetExecutingAssembly().Location;
             string assemblyDir = Path.GetDirectoryName(assemblyPath);
-            string pathToNodesDll = assemblyDir + "\\nodes\\DSCoreNodesUI.dll";
+            string pathToNodesDll = assemblyDir + "\\nodes\\CoreNodeModels.dll";
             Assembly assembly = Assembly.LoadFile(pathToNodesDll);
             Type type = assembly.GetType("Dynamo.Nodes.IntegerSlider");
 
@@ -110,7 +112,7 @@ namespace Dynamo.TestInfrastructure
         {
             string assemblyPath = Assembly.GetExecutingAssembly().Location;
             string assemblyDir = Path.GetDirectoryName(assemblyPath);
-            string pathToNodesDll = assemblyDir + "\\nodes\\DSCoreNodesUI.dll";
+            string pathToNodesDll = assemblyDir + "\\nodes\\CoreNodeModels.dll";
             Assembly assembly = Assembly.LoadFile(pathToNodesDll);
 
             Type type = assembly.GetType("Dynamo.Nodes.IntegerSlider");

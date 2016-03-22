@@ -5,6 +5,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
 using System.Text;
+using Dynamo.Library;
 
 namespace Dynamo.Extensions
 {
@@ -17,6 +18,10 @@ namespace Dynamo.Extensions
             this.model = model;
         }
 
+        /// <summary>
+        /// Loads the node library.
+        /// </summary>
+        /// <param name="library">The library.</param>
         public void LoadNodeLibrary(Assembly library)
         {
             model.LoadNodeLibrary(library);

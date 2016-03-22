@@ -238,7 +238,7 @@
     <value>Asked to convert non-convertible types</value>
   </data>
   <data name="kCyclicDependency" xml:space="preserve">
-    <value>A cyclic dependency exists between '{0}' and '{1}'</value>
+    <value>A cyclic dependency exists between two variables</value>
   </data>
   <data name="kDeferencingNonPointer" xml:space="preserve">
     <value>Internal error, please report: Dereferencing a non-pointer. (3f47aacd)</value>
@@ -298,7 +298,7 @@
     <value>Internal error, please report: Statement continue cause function to abnormally return null. (fd67aaee)</value>
   </data>
   <data name="kInvalidStaticCyclicDependency" xml:space="preserve">
-    <value>A cyclic dependency exists between '{0}' and '{1}'</value>
+    <value>A cyclic dependency exists between two variables</value>
   </data>
   <data name="kInvalidThis" xml:space="preserve">
     <value>'this' can only be used in methods that are members of a class</value>
@@ -383,9 +383,6 @@
   </data>
   <data name="kStringOverIndexed" xml:space="preserve">
     <value>String is over indexed</value>
-  </data>
-  <data name="kSymbolOverIndexed" xml:space="preserve">
-    <value>'{0}' is over indexed</value>
   </data>
   <data name="kTypeUndefined" xml:space="preserve">
     <value>Type '{0}' is not defined</value>
@@ -904,5 +901,14 @@ Parameter name: {0}</value>
   </data>
   <data name="kInvalidUnicodeArgumentInRangeExpression" xml:space="preserve">
     <value>Sequence node supports only ASCII characters</value>
+  </data>
+  <data name="MoreThanOneDominantList" xml:space="preserve">
+    <value>Only one dominant list is allowed</value>
+  </data>
+  <data name="RangeExpressionOutOfMemory" xml:space="preserve">
+    <value>The number of items in range expression is over limit</value>
+  </data>
+  <data name="IndexIntoNonArrayObject" xml:space="preserve">
+    <value>No item exists at specified index address</value>
   </data>
 </root>

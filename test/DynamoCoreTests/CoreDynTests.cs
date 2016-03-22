@@ -3,10 +3,9 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Threading;
-
-using DSCore.File;
-
-using Dynamo.Nodes;
+using CoreNodeModels;
+using CoreNodeModels.Input;
+using Dynamo.Graph.Nodes;
 using NUnit.Framework;
 
 using String = System.String;
@@ -112,6 +111,60 @@ namespace Dynamo.Tests
             Assert.IsNotNull(watchNode);
 
             AssertPreviewValue(watchNode.GUID.ToString(), new int[] { });
+        }
+
+        [Test]
+        public void DefaultSequence()
+        {
+            RunModel(@"core\sequence\DefaultSequence.dyn");
+            AssertPreviewValue("6d7f8652-6cf2-4749-b398-922992fa484b",
+                "Function");
+        }
+
+        [Test]
+        public void DefaultRange()
+        {
+            RunModel(@"core\range\DefaultRange.dyn");
+            AssertPreviewValue("24323e5c-6d36-4b18-b99d-fa953eafeb73",
+                "Function");
+        }
+
+        [Test]
+        public void DefaultNumberSlider()
+        {
+            RunModel(@"core\slider\DefaultNumberSlider.dyn");
+            AssertPreviewValue("120c4ade-a49c-4aac-b3ff-02e41562d3ad", 1.0);
+        }
+
+        [Test]
+        public void DefaultIntegerSlider()
+        {
+            RunModel(@"core\slider\DefaultIntegerSlider.dyn");
+            AssertPreviewValue("35e5118e-c118-4690-bcef-ca5e601eac72", 1.0);
+        }
+
+        [Test]
+        public void TestRangeMap()
+        {
+            RunModel(@"core\range\RangeMap.dyn");
+            AssertPreviewValue("251ec88d-200d-4b75-95c8-1f9dfa540eba",
+                new[] { new[] { 5, 6, 7, 8, 9, 10 }, new[] { 5, 7, 9 } });
+            AssertPreviewValue("54a3f2af-e286-4a5b-8b04-977d47b6cfe3",
+                new[] { new[] { 1, 2, 3, 4, 5 }, new[] { 2, 3, 4, 5 } });
+            AssertPreviewValue("462fc8d4-1261-4251-8149-3ae9f4807591",
+                new[] { new[] { 5 }, new[] { 5, 6, 7, 8, 9, 10 } });
+        }
+
+        [Test]
+        public void TestSequenceMap()
+        {
+            RunModel(@"core\sequence\SequenceMap.dyn");
+            AssertPreviewValue("251ec88d-200d-4b75-95c8-1f9dfa540eba",
+                new[] { new[] { 5, 6, 7 }, new[] { 5, 7, 9 } });
+            AssertPreviewValue("54a3f2af-e286-4a5b-8b04-977d47b6cfe3",
+                new[] { new[] { 1, 3, 5, 7, 9 }, new[] { 2, 4, 6, 8, 10 } });
+            AssertPreviewValue("462fc8d4-1261-4251-8149-3ae9f4807591",
+                new[] { new[] { 5, 6, 7, 8, 9 }, new[] { 5, 6, 7 } });
         }
 
         [Test]
@@ -440,7 +493,7 @@ namespace Dynamo.Tests
         {
             OpenModel(Path.Combine(TestDirectory, @"core\customast\begin-test.dyn"));
 
-            var dummy = CurrentDynamoModel.CurrentWorkspace.FirstNodeFromWorkspace<Dynamo.Nodes.DummyNode>();
+            var dummy = CurrentDynamoModel.CurrentWorkspace.FirstNodeFromWorkspace<DummyNode>();
             Assert.IsNotNull(dummy);
 
             const string textAndFileName = @"test.txt";

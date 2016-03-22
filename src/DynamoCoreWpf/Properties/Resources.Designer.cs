@@ -296,6 +296,15 @@ namespace Dynamo.Wpf.Properties {
         }
         
         /// <summary>
+        ///   Looks up a localized string similar to Compact.
+        /// </summary>
+        public static string CompactLayoutTitle {
+            get {
+                return ResourceManager.GetString("CompactLayoutTitle", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   Looks up a localized string similar to Yes, I would like to contribute to this program (Google Analytics)..
         /// </summary>
         public static string ConsentFormGoogleAnalyticsCheckBoxContent {
@@ -766,6 +775,15 @@ namespace Dynamo.Wpf.Properties {
         }
         
         /// <summary>
+        ///   Looks up a localized string similar to Detailed.
+        /// </summary>
+        public static string DetailedLayoutTitle {
+            get {
+                return ResourceManager.GetString("DetailedLayoutTitle", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   Looks up a localized string similar to Download Warning.
         /// </summary>
         public static string DownloadWarningMessageBoxTitle {
@@ -1180,7 +1198,7 @@ namespace Dynamo.Wpf.Properties {
         }
         
         /// <summary>
-        ///   Looks up a localized string similar to _Recent Files.
+        ///   Looks up a localized string similar to _Open Recent Files....
         /// </summary>
         public static string DynamoViewFileMenuRecentFiles {
             get {
@@ -1940,6 +1958,15 @@ namespace Dynamo.Wpf.Properties {
         }
         
         /// <summary>
+        ///   Looks up a localized string similar to Show Grid.
+        /// </summary>
+        public static string DynamoViewViewMenuShowGrid {
+            get {
+                return ResourceManager.GetString("DynamoViewViewMenuShowGrid", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   Looks up a localized string similar to _Zoom.
         /// </summary>
         public static string DynamoViewViewMenuZoom {
@@ -2125,6 +2152,15 @@ namespace Dynamo.Wpf.Properties {
         public static string FilePathConverterNoFileSelected {
             get {
                 return ResourceManager.GetString("FilePathConverterNoFileSelected", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Filter results.
+        /// </summary>
+        public static string FilterIconTooltip {
+            get {
+                return ResourceManager.GetString("FilterIconTooltip", resourceCulture);
             }
         }
         
@@ -2516,6 +2552,15 @@ namespace Dynamo.Wpf.Properties {
         }
         
         /// <summary>
+        ///   Looks up a localized string similar to Could not sign in at this moment. Check the date, time and time zone settings and try to sign in again..
+        /// </summary>
+        public static string InvalidTimeZoneMessage {
+            get {
+                return ResourceManager.GetString("InvalidTimeZoneMessage", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   Looks up a localized string similar to For two lists {a,b,c}{1,2,3} returns {a1,a2,a3}{b1,b2,b3}{c1,c2,c3}..
         /// </summary>
         public static string LacingCrossProductToolTip {
@@ -2557,6 +2602,15 @@ namespace Dynamo.Wpf.Properties {
         public static string LacingShortestToolTip {
             get {
                 return ResourceManager.GetString("LacingShortestToolTip", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to View layout.
+        /// </summary>
+        public static string LayoutIconTooltip {
+            get {
+                return ResourceManager.GetString("LayoutIconTooltip", resourceCulture);
             }
         }
         
@@ -3103,6 +3157,24 @@ namespace Dynamo.Wpf.Properties {
         }
         
         /// <summary>
+        ///   Looks up a localized string similar to Freeze.
+        /// </summary>
+        public static string NodesRunStatus {
+            get {
+                return ResourceManager.GetString("NodesRunStatus", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to There was an error while finding node view customizations for {0}. Contact the author of this assembly for more information..
+        /// </summary>
+        public static string NodeViewCustomizationFindErrorMessage {
+            get {
+                return ResourceManager.GetString("NodeViewCustomizationFindErrorMessage", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   Looks up a localized string similar to none.
         /// </summary>
         public static string NoneString {
@@ -3135,6 +3207,26 @@ namespace Dynamo.Wpf.Properties {
         public static string OKButton {
             get {
                 return ResourceManager.GetString("OKButton", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Please, load assembly just one time.
+        ///Next assemblies were loaded several times:
+        ///.
+        /// </summary>
+        public static string OneAssemblyWasLoadedSeveralTimesErrorMessage {
+            get {
+                return ResourceManager.GetString("OneAssemblyWasLoadedSeveralTimesErrorMessage", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to only.
+        /// </summary>
+        public static string OnlyTitle {
+            get {
+                return ResourceManager.GetString("OnlyTitle", resourceCulture);
             }
         }
         
@@ -3814,6 +3906,15 @@ namespace Dynamo.Wpf.Properties {
         }
         
         /// <summary>
+        ///   Looks up a localized string similar to List.
+        /// </summary>
+        public static string PreviewListLabel {
+            get {
+                return ResourceManager.GetString("PreviewListLabel", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   Looks up a localized string similar to Publish Online.
         /// </summary>
         public static string PublishPackage {
@@ -4120,6 +4221,15 @@ namespace Dynamo.Wpf.Properties {
         }
         
         /// <summary>
+        ///   Looks up a localized string similar to Select All.
+        /// </summary>
+        public static string SelectAllTitle {
+            get {
+                return ResourceManager.GetString("SelectAllTitle", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   Looks up a localized string similar to Selection Error.
         /// </summary>
         public static string SelectionErrorMessageBoxTitle {
@@ -4152,6 +4262,15 @@ namespace Dynamo.Wpf.Properties {
         public static string ShowClassicNodeLibrary {
             get {
                 return ResourceManager.GetString("ShowClassicNodeLibrary", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Show/hide.
+        /// </summary>
+        public static string ShowHideLibraryIconTooltip {
+            get {
+                return ResourceManager.GetString("ShowHideLibraryIconTooltip", resourceCulture);
             }
         }
         

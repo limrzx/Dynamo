@@ -1,5 +1,8 @@
 ﻿using System;
 using System.Linq;
+using Dynamo.Graph;
+using Dynamo.Graph.Connectors;
+using Dynamo.Graph.Nodes;
 using Dynamo.Models;
 using Dynamo.Utilities;
 
@@ -216,7 +219,13 @@ namespace Dynamo.ViewModels
                 return PreviewState.None;
             }
         }
-#endregion
+         
+        public bool IsFrozen
+        {
+            get { return _model == null ? _activeStartPort.Owner.IsFrozen : Nodevm.IsFrozen; }
+        }
+
+        #endregion
 
         /// <summary>
         /// Construct a view and start drawing.
@@ -255,6 +264,9 @@ namespace Dynamo.ViewModels
             {
                 case "ShowExecutionPreview":
                     RaisePropertyChanged("PreviewState");
+                    break;
+                case "IsFrozen":
+                    RaisePropertyChanged("IsFrozen");
                     break;
             }
         }

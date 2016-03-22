@@ -4,14 +4,12 @@ using System.Globalization;
 using System.Linq;
 using System.Xml;
 using Autodesk.DesignScript.Runtime;
-
+using Dynamo.Graph;
+using Dynamo.Graph.Nodes;
 using Dynamo.Migration;
-using Dynamo.Models;
-using Dynamo.Nodes;
-
 using ProtoCore.AST.AssociativeAST;
 
-namespace DSCoreNodesUI.Input
+namespace CoreNodeModels.Input
 {
     [NodeName("Number Slider")]
     [NodeCategory(BuiltinNodeCategories.CORE_INPUT)]
@@ -19,6 +17,7 @@ namespace DSCoreNodesUI.Input
     [NodeSearchTags("DoubleSliderSearchTags", typeof(Properties.Resources))]
     [SupressImportIntoVM]
     [IsDesignScriptCompatible]
+    [AlsoKnownAs("DSCoreNodesUI.Input.DoubleSlider")]
     public class DoubleSlider : SliderBase<double>
     {
         public DoubleSlider()
@@ -26,7 +25,7 @@ namespace DSCoreNodesUI.Input
             Min = 0;
             Max = 100;
             Step = 0.1;
-            Value = 0;
+            Value = 1;
             ShouldDisplayPreviewCore = false;
         }
 
@@ -144,7 +143,7 @@ namespace Dynamo.Nodes
         {
             var migrationData = new NodeMigrationData(data.Document);
             XmlElement oldNode = data.MigratedNodes.ElementAt(0);
-            XmlElement newNode = MigrationManager.CloneAndChangeName(oldNode, "DSCoreNodesUI.Input.DoubleSlider", "Number Slider", true);
+            XmlElement newNode = MigrationManager.CloneAndChangeName(oldNode, "CoreNodeModels.Input.DoubleSlider", "Number Slider", true);
 
             migrationData.AppendNode(newNode);
             return migrationData;

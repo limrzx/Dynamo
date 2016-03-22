@@ -27,7 +27,7 @@ namespace ProtoAssociative
             {
                 ProtoCore.CodeGen oldCodegen = core.assocCodegen;
 
-                if (ProtoCore.DSASM.InterpreterMode.kNormal == core.Options.RunMode)
+                if (ProtoCore.DSASM.InterpreterMode.Normal == core.Options.RunMode)
                 {
                     if ((core.IsParsingPreloadedAssembly || core.IsParsingCodeBlockNode) && parentBlock == null)
                     {
@@ -60,24 +60,17 @@ namespace ProtoAssociative
                     //if not null, Compile has been called from DfsTraverse. No parsing is needed. 
                     if (codeBlockNode == null)
                     {
-                        var p = ParserUtils.CreateParser(langBlock.body, core);
-                        p.Parse();
-
+                        var parseResult = ParserUtils.ParseWithCore(langBlock.Code, core);
                         // TODO Jun: Set this flag inside a persistent object
                         core.builtInsLoaded = true;
-
-                        codeBlockNode = p.root;
-
-                        //core.AstNodeList = p.GetParsedASTList(codeBlockNode as ProtoCore.AST.AssociativeAST.CodeBlockNode);
-                        List<ProtoCore.AST.Node> astNodes = ProtoCore.Utils.ParserUtils.GetAstNodes(codeBlockNode);
-                        core.AstNodeList = astNodes;
+                        codeBlockNode = parseResult.CodeBlockNode;
                     }
                     else
                     {
                         if (!core.builtInsLoaded)
                         {
                             // Load the built-in methods manually
-                            ProtoCore.Utils.CoreUtils.InsertPredefinedAndBuiltinMethods(core, codeBlockNode, false);
+                            CoreUtils.InsertPredefinedAndBuiltinMethods(core, codeBlockNode as ProtoCore.AST.AssociativeAST.CodeBlockNode);
                             core.builtInsLoaded = true;
                         }
                     }
@@ -87,11 +80,11 @@ namespace ProtoAssociative
                     //Temporarily change the code block for code gen to the current block, in the case it is an imperative block
                     //CodeGen for ProtoImperative is modified to passing in the core object.
                     ProtoCore.DSASM.CodeBlock oldCodeBlock = core.assocCodegen.codeBlock;
-                    if (core.Options.RunMode == ProtoCore.DSASM.InterpreterMode.kExpressionInterpreter)
+                    if (core.Options.RunMode == ProtoCore.DSASM.InterpreterMode.Expression)
                     {
                         int tempBlockId = callContext.CurrentBlockId;
                         ProtoCore.DSASM.CodeBlock tempCodeBlock = ProtoCore.Utils.CoreUtils.GetCodeBlock(core.CodeBlockList, tempBlockId);
-                        while (null != tempCodeBlock && tempCodeBlock.blockType != ProtoCore.DSASM.CodeBlockType.kLanguage)
+                        while (null != tempCodeBlock && tempCodeBlock.blockType != ProtoCore.DSASM.CodeBlockType.Language)
                         {
                             tempCodeBlock = tempCodeBlock.parent;
                         }
@@ -102,7 +95,7 @@ namespace ProtoAssociative
                     {
                         blockId = core.assocCodegen.Emit((codeBlockNode as ProtoCore.AST.AssociativeAST.CodeBlockNode), graphNode);
                     }
-                    if (core.Options.RunMode == ProtoCore.DSASM.InterpreterMode.kExpressionInterpreter)
+                    if (core.Options.RunMode == ProtoCore.DSASM.InterpreterMode.Expression)
                     {
                         blockId = core.assocCodegen.codeBlock.codeBlockId;
                         //Restore the code block.

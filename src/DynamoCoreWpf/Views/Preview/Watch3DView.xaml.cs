@@ -1,17 +1,19 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Windows;
 using System.Windows.Controls.Primitives;
 using System.Windows.Input;
 using System.Windows.Media;
+using System.Windows.Media.Media3D;
 using System.Windows.Threading;
 using Autodesk.DesignScript.Interfaces;
 using Dynamo.Wpf.ViewModels.Watch3D;
-using Dynamo.Wpf.Views.Preview;
 using HelixToolkit.Wpf.SharpDX;
-using GeometryModel3D = HelixToolkit.Wpf.SharpDX.GeometryModel3D;
+using SharpDX;
 using Model3D = HelixToolkit.Wpf.SharpDX.Model3D;
 using Point = System.Windows.Point;
+using Dynamo.Graph.Nodes;
 
 namespace Dynamo.Controls
 {
@@ -58,7 +60,15 @@ namespace Dynamo.Controls
 
             if (ViewModel == null) return;
 
+            UnRegisterViewEventHandlers();
+
             ViewModel.RequestAttachToScene -= ViewModelRequestAttachToSceneHandler;
+            ViewModel.RequestCreateModels -= RequestCreateModelsHandler;
+            ViewModel.RequestRemoveModels -= RequestRemoveModelsHandler;
+            ViewModel.RequestViewRefresh -= RequestViewRefreshHandler;
+            ViewModel.RequestClickRay -= GetClickRay;
+            ViewModel.RequestCameraPosition -= GetCameraPosition;
+            ViewModel.RequestZoomToFit -= ViewModel_RequestZoomToFit;
         }
 
         private void RegisterButtonHandlers()
@@ -85,7 +95,25 @@ namespace Dynamo.Controls
             {
                 ViewModel.OnViewMouseMove(sender, args);
             };
+
+            watch_view.CameraChanged += (sender, args) =>
+            {
+                var view = sender as Viewport3DX;
+                if (view != null)
+                {
+                    args.Source = view.GetCameraPosition();
+                }
+                ViewModel.OnViewCameraChanged(sender, args);
+            };
         }
+
+        private void UnRegisterViewEventHandlers()
+        {
+            watch_view.MouseDown -= ViewModel.OnViewMouseDown;
+            watch_view.MouseUp -= ViewModel.OnViewMouseUp;
+            watch_view.MouseMove -= ViewModel.OnViewMouseMove;
+            watch_view.CameraChanged -= ViewModel.OnViewCameraChanged;
+         }		         
 
         private void UnregisterButtonHandlers()
         {
@@ -118,8 +146,19 @@ namespace Dynamo.Controls
 
             ViewModel.RequestAttachToScene += ViewModelRequestAttachToSceneHandler;
             ViewModel.RequestCreateModels += RequestCreateModelsHandler;
+            ViewModel.RequestRemoveModels += RequestRemoveModelsHandler;
             ViewModel.RequestViewRefresh += RequestViewRefreshHandler;
             ViewModel.RequestClickRay += GetClickRay;
+            ViewModel.RequestCameraPosition += GetCameraPosition;
+            ViewModel.RequestZoomToFit += ViewModel_RequestZoomToFit;
+
+            ViewModel.UpdateUpstream();
+            ViewModel.OnWatchExecution();
+        }
+
+        private void ViewModel_RequestZoomToFit(BoundingBox bounds)
+        {
+            watch_view.ZoomExtents(bounds.ToRect3D());
         }
 
         private void RequestViewRefreshHandler()
@@ -127,9 +166,9 @@ namespace Dynamo.Controls
             View.InvalidateRender();
         }
 
-        private void RequestCreateModelsHandler(IEnumerable<IRenderPackage> packages)
+        private void RequestCreateModelsHandler(IEnumerable<IRenderPackage> packages, bool forceAsyncCall = false)
         {
-            if (CheckAccess())
+            if (!forceAsyncCall && CheckAccess())
             {
                 ViewModel.GenerateViewGeometryFromRenderPackagesAndRequestUpdate(packages);
             }
@@ -139,23 +178,23 @@ namespace Dynamo.Controls
             }
         }
 
-        private void ViewModelRequestAttachToSceneHandler(Model3D model3D)
+        private void RequestRemoveModelsHandler(NodeModel node)
         {
-            if (model3D is GeometryModel3D)
+            if (CheckAccess())
             {
-                if (View != null && View.RenderHost != null && !model3D.IsAttached)
-                {
-                    model3D.Attach(View.RenderHost);
-                }
+                ViewModel.DeleteGeometryForNode(node);
             }
             else
             {
-                //This is for Directional Light. When a watch is attached,
-                //Directional light has to be attached one more time.
-                if (!model3D.IsAttached && View != null && View.RenderHost != null)
-                {
-                    model3D.Attach(View.RenderHost);
-                }
+                Dispatcher.BeginInvoke(DispatcherPriority.Render, new Action(() => ViewModel.DeleteGeometryForNode(node)));
+            }
+        }
+
+        private void ViewModelRequestAttachToSceneHandler(Model3D model3D)
+        {
+            if (!model3D.IsAttached && View != null && View.RenderHost != null)
+            {
+                model3D.Attach(View.RenderHost);
             }
         }
 
@@ -177,18 +216,8 @@ namespace Dynamo.Controls
 
         private void CompositionTargetRenderingHandler(object sender, EventArgs e)
         {
-            var sceneBounds = watch_view.FindBounds();
-
-            var helixVm = ViewModel as HelixWatch3DViewModel;
-            if (helixVm == null) return;
-
-            helixVm.UpdateNearClipPlaneForSceneBounds(sceneBounds);
-            helixVm.ComputeFrameUpdate();
-        }
-
-        private void OnZoomToFitClickedHandler(object sender, RoutedEventArgs e)
-        {
-            watch_view.ZoomExtents();
+            ViewModel.UpdateNearClipPlane();
+            ViewModel.ComputeFrameUpdate();
         }
 
         private void MouseButtonIgnoreHandler(object sender, MouseButtonEventArgs e)
@@ -215,11 +244,28 @@ namespace Dynamo.Controls
 
         #endregion
 
-        public Ray3D GetClickRay(MouseEventArgs mouseButtonEventArgs)
+        private IRay GetClickRay(MouseEventArgs args)
         {
-            var mousePos = mouseButtonEventArgs.GetPosition(this);
+            var mousePos = args.GetPosition(this);
 
-            return View.Point2DToRay3D(new Point(mousePos.X, mousePos.Y));
+            var ray = View.Point2DToRay3D(new Point(mousePos.X, mousePos.Y));
+
+            if (ray == null) return null;
+
+            var position = new Point3D(0, 0, 0);
+            var normal = new Vector3D(0, 0, 1);
+            var pt3D = ray.PlaneIntersection(position, normal);
+
+            if (pt3D == null) return null;
+
+            return new Ray3(ray.Origin, ray.Direction);
+        }
+
+        private Point3D GetCameraPosition()
+        {
+            return View.GetCameraPosition();
         }
     }
+
+    
 }

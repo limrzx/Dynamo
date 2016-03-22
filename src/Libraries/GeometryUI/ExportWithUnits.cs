@@ -4,7 +4,6 @@ using System.Collections.Generic;
 using Autodesk.DesignScript.Geometry;
 
 using Dynamo.Models;
-using Dynamo.Nodes;
 using Dynamo.Utilities;
 using DynamoConversions;
 
@@ -13,6 +12,8 @@ using GeometryUI.Properties;
 using ProtoCore.AST.AssociativeAST;
 using System.Xml;
 using System.Globalization;
+using Dynamo.Graph;
+using Dynamo.Graph.Nodes;
 
 namespace GeometryUI
 {
@@ -53,10 +54,8 @@ namespace GeometryUI
             SelectedExportedUnitsSource =
                 Conversions.ConversionMetricLookup[ConversionMetricUnit.Length];
 
-            AssociativeNode geometryNode = new ArrayNode();
-            AssociativeNode stringNode = new StringNode();
-            InPortData.Add(new PortData("geometry", Resources.ExportToSatGeometryInputDescription, geometryNode));
-            InPortData.Add(new PortData("filePath", Resources.ExportToSatFilePathDescription, stringNode));
+            InPortData.Add(new PortData("geometry", Resources.ExportToSatGeometryInputDescription));
+            InPortData.Add(new PortData("filePath", Resources.ExportToSatFilePathDescription, new StringNode()));
             OutPortData.Add(new PortData("string", Resources.ExportToSatFilePathOutputDescription));
 
             ShouldDisplayPreviewCore = true;

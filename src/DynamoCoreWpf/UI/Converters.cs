@@ -1,32 +1,30 @@
 using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
-using System.Drawing;
 using System.Globalization;
 using System.IO;
 using System.Linq;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Data;
-using System.Windows.Input;
 using System.Windows.Media;
-
-using Dynamo.Models;
 using Dynamo.PackageManager;
-using Dynamo.Search;
+using Dynamo.Search.SearchElements;
 using Dynamo.UI;
 using Dynamo.UI.Controls;
-using Dynamo.UpdateManager;
+using Dynamo.Updates;
 using Dynamo.ViewModels;
 using Dynamo.Wpf.Properties;
 using Dynamo.Wpf.ViewModels;
 using DynamoUnits;
-using RestSharp.Contrib;
-using System.Text;
 using System.Windows.Controls.Primitives;
+using Dynamo.Configuration;
+using Dynamo.Graph.Nodes;
+using Dynamo.Graph.Workspaces;
+using Dynamo.Logging;
 using Dynamo.Utilities;
-using Dynamo.Wpf.ViewModels.Watch3D;
 using HelixToolkit.Wpf.SharpDX;
+using RestSharp.Extensions.MonoHttp;
 using Color = System.Windows.Media.Color;
 using FlowDirection = System.Windows.FlowDirection;
 using HorizontalAlignment = System.Windows.HorizontalAlignment;
@@ -1840,11 +1838,11 @@ namespace Dynamo.Controls
                     int maxRowLength = Configurations.MaxLengthRowClassButtonTitle;
                     int maxRowNumbers = Configurations.MaxRowNumber;
 
-                    var words = Dynamo.Nodes.Utilities.WrapText(text, maxRowLength);
+                    var words = Graph.Nodes.Utilities.WrapText(text, maxRowLength);
                     if (words.Count() > maxRowNumbers)
-                        words = Dynamo.Nodes.Utilities.ReduceRowCount(words.ToList(), maxRowNumbers);
+                        words = Graph.Nodes.Utilities.ReduceRowCount(words.ToList(), maxRowNumbers);
 
-                    words = Dynamo.Nodes.Utilities.TruncateRows(words, maxRowLength);
+                    words = Graph.Nodes.Utilities.TruncateRows(words, maxRowLength);
                     text = String.Join("\n", words);
 
                     return text;
@@ -2738,6 +2736,32 @@ namespace Dynamo.Controls
             public object ConvertBack(object value, Type targetType, object parameter, System.Globalization.CultureInfo culture)
             {
                 throw new Exception("The method or operation is not implemented.");
+            }
+        }
+
+        public class RgbaStringToBrushConverter : IValueConverter
+        {
+            public object Convert(object value, Type targetType, object parameter, CultureInfo culture)
+            {
+                // example conversion: "R=255, G=60, B=0, A=255" beccomes "#FF3C00"
+                try
+                {
+                    var rgba = (value as string).Split(new char[] { 'R', 'G', 'B', 'A', ',', '=', ' ' },
+                        StringSplitOptions.RemoveEmptyEntries);
+
+                    if (rgba.Count() == 4)
+                    {
+                        return new SolidColorBrush(Color.FromRgb(
+                           Byte.Parse(rgba[0]), Byte.Parse(rgba[1]), Byte.Parse(rgba[2])));
+                    }
+                } catch { }
+
+                return "Black"; // if not able to parse color
+            }
+
+            public object ConvertBack(object value, Type targetType, object parameter, CultureInfo culture)
+            {
+                throw new NotImplementedException();
             }
         }
     }

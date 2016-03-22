@@ -3,10 +3,15 @@ using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.ComponentModel;
 using System.Linq;
+using System.Text;
 using System.Text.RegularExpressions;
 using System.Windows;
 using System.Windows.Media;
+using Dynamo.Configuration;
+using Dynamo.Graph;
+using Dynamo.Graph.Nodes;
 using Dynamo.Interfaces;
+using Dynamo.Logging;
 using Dynamo.Nodes;
 using Dynamo.Search;
 using Dynamo.Search.SearchElements;
@@ -26,17 +31,10 @@ namespace Dynamo.ViewModels
         #region events
 
         public event EventHandler RequestFocusSearch;
-        public virtual void OnRequestFocusSearch(object sender, EventArgs e)
+        public virtual void OnRequestFocusSearch()
         {
             if (RequestFocusSearch != null)
-                RequestFocusSearch(this, e);
-        }
-
-        public event EventHandler RequestReturnFocusToSearch;
-        public void OnRequestReturnFocusToSearch(object sender, EventArgs e)
-        {
-            if (RequestReturnFocusToSearch != null)
-                RequestReturnFocusToSearch(this, e);
+                RequestFocusSearch(this, EventArgs.Empty);
         }
 
         public event EventHandler SearchTextChanged;
@@ -137,6 +135,33 @@ namespace Dynamo.ViewModels
         }
 
         /// <summary>
+        ///  The property specifies which layout(detailed or compact) is used in search view.
+        /// </summary>
+        public bool IsDetailedMode
+        {
+            get
+            {
+                if (dynamoViewModel.Model.PreferenceSettings != null)
+                {
+                    return dynamoViewModel.Model.PreferenceSettings.ShowDetailedLayout;
+                }
+                else
+                {
+                    return true;
+                }
+            }
+            set
+            {
+                if (dynamoViewModel.Model.PreferenceSettings != null
+                    && dynamoViewModel.Model.PreferenceSettings.ShowDetailedLayout != value)
+                {
+                    dynamoViewModel.Model.PreferenceSettings.ShowDetailedLayout = value;
+                    RaisePropertyChanged("IsDetailedMode");
+                }
+            }
+        }
+
+        /// <summary>
         ///     Items that were found during search.
         /// </summary>
         private List<NodeSearchElementViewModel> searchResults;
@@ -153,7 +178,7 @@ namespace Dynamo.ViewModels
             }
             set
             {
-                filteredResults = value;
+                filteredResults = ToggleSelect(value);
                 RaisePropertyChanged("FilteredResults");
             }
         }
@@ -167,6 +192,43 @@ namespace Dynamo.ViewModels
             FilteredResults = searchResults.Where(x => allowedCategories
                                                                        .Select(cat => cat.Name)
                                                                        .Contains(x.Category));
+
+            // Report selected categories to instrumentation
+            StringBuilder strBuilder = new StringBuilder();
+            foreach (var category in SearchCategories)
+            {
+                strBuilder.Append(category.Name);
+                strBuilder.Append(" : ");
+                if (category.IsSelected)
+                {
+                    strBuilder.Append("Selected");
+                }
+                else
+                {
+                    strBuilder.Append("Unselected");
+                }
+                strBuilder.Append(", ");
+            }
+
+            InstrumentationLogger.LogPiiInfo("Filter-categories", strBuilder.ToString().Trim());
+        }
+
+        /// <summary>
+        /// Unselects all items and selectes the first one.
+        /// </summary>
+        internal IEnumerable<NodeSearchElementViewModel> ToggleSelect(IEnumerable<NodeSearchElementViewModel> items)
+        {
+            if (!items.Any())
+            {
+                return items;
+            }
+
+            // Unselect all.
+            items.Skip(1).ToList().ForEach(x => x.IsSelected = false);
+            // Select first.
+            items.First().IsSelected = true;
+
+            return items;
         }
 
         /// <summary>
@@ -192,7 +254,7 @@ namespace Dynamo.ViewModels
             }
             private set
             {
-                searchCategories = value;
+                searchCategories = value.OrderBy(category => category.Name);
                 RaisePropertyChanged("SearchCategories");
             }
         }
@@ -220,6 +282,11 @@ namespace Dynamo.ViewModels
 
         public NodeSearchModel Model { get; private set; }
         private readonly DynamoViewModel dynamoViewModel;
+
+        /// <summary>
+        /// Class name, that has been clicked in library search view.
+        /// </summary>
+        internal string ClassNameToBeOpened;
         #endregion
 
         #region Initialization
@@ -266,6 +333,7 @@ namespace Dynamo.ViewModels
                 InsertEntry(MakeNodeSearchElementVM(entry), entry.Categories);
                 RaisePropertyChanged("BrowserRootCategories");
             };
+             
             Model.EntryUpdated += UpdateEntry;
             Model.EntryRemoved += RemoveEntry;
 
@@ -280,8 +348,7 @@ namespace Dynamo.ViewModels
 
         private IEnumerable<RootNodeCategoryViewModel> CategorizeEntries(IEnumerable<NodeSearchElement> entries, bool expanded)
         {
-            var tempRoot =
-                entries.GroupByRecursive<NodeSearchElement, string, NodeCategoryViewModel>(
+            var tempRoot = entries.GroupByRecursive<NodeSearchElement, string, NodeCategoryViewModel>(
                     element => element.Categories,
                     (name, subs, es) =>
                     {
@@ -289,15 +356,21 @@ namespace Dynamo.ViewModels
                             new NodeCategoryViewModel(name, es.OrderBy(en => en.Name).Select(MakeNodeSearchElementVM), subs);
                         category.IsExpanded = expanded;
                         category.RequestBitmapSource += SearchViewModelRequestBitmapSource;
+                        category.RequestReturnFocusToSearch += OnRequestFocusSearch;
                         return category;
                     }, "");
-            var result =
-                tempRoot.SubCategories.Select(
-                    cat =>
-                        new RootNodeCategoryViewModel(cat.Name, cat.Entries, cat.SubCategories)
-                        {
-                            IsExpanded = expanded
-                        });
+
+            var result = tempRoot.SubCategories.Select(cat =>
+            {
+                var rootCat = new RootNodeCategoryViewModel(cat.Name, cat.Entries, cat.SubCategories)
+                {
+                    IsExpanded = expanded
+                };
+
+                rootCat.RequestReturnFocusToSearch += OnRequestFocusSearch;
+                return rootCat;
+            });
+
             tempRoot.Dispose();
             return result.OrderBy(cat => cat.Name);
         }
@@ -356,19 +429,20 @@ namespace Dynamo.ViewModels
         }
 
         internal void RemoveEntry(NodeSearchElement entry)
-        {
+        {            
             var branch = GetTreeBranchToNode(libraryRoot, entry);
             if (!branch.Any())
                 return;
             var treeStack = new Stack<NodeCategoryViewModel>(branch.Reverse());
 
             var target = treeStack.Pop();
+          
             var location = target.Entries.Select((e, i) => new { e.Model, i })
                 .FirstOrDefault(x => entry == x.Model);
             if (location == null)
                 return;
             target.Entries.RemoveAt(location.i);
-
+           
             while (!target.Items.Any() && treeStack.Any())
             {
                 var parent = treeStack.Pop();
@@ -644,8 +718,19 @@ namespace Dynamo.ViewModels
         private void AddEntryToExistingCategory(NodeCategoryViewModel category,
             NodeSearchElementViewModel entry)
         {
-            category.RequestBitmapSource += SearchViewModelRequestBitmapSource;
-            category.Entries.Add(entry);
+            category.RequestBitmapSource += SearchViewModelRequestBitmapSource; 
+            // Check if the category exists already. 
+            // ex : clockwork package. For clockwork 
+            // package the category names in dyf is different from what we show it 
+            // on the tree view. so when you click on the category to populate it 
+            // triggers an update to category name. on the same instance when you uninstall
+            // and insall the clockwork package, the categories are named correctly but 
+            // every install triggers an update that gives a duplicate entry. so check if the
+            // entry is already added (specific to browse).
+            if (category.Entries.All(x => x.FullName != entry.FullName))
+            {
+                category.Entries.Add(entry);
+            }
         }
 
         private void SearchViewModelRequestBitmapSource(IconRequestEventArgs e)
@@ -710,7 +795,7 @@ namespace Dynamo.ViewModels
             var foundNodes = Search(query);
             searchResults = new List<NodeSearchElementViewModel>(foundNodes);
 
-            filteredResults = searchResults;
+            FilteredResults = searchResults;
             UpdateSearchCategories();
 
             RaisePropertyChanged("FilteredResults");
@@ -843,6 +928,55 @@ namespace Dynamo.ViewModels
 
         #endregion
 
+        #region Key navigation
+
+        public enum Direction
+        {
+            Down, Up
+        }
+
+        /// <summary>
+        /// Executes selected item in search UI.
+        /// </summary>
+        public void ExecuteSelectedItem()
+        {
+            var selected = FilteredResults.FirstOrDefault(item => item.IsSelected);
+
+            if (selected != null)
+            {
+                selected.ClickedCommand.Execute(null);
+            }
+        }
+
+        /// <summary>
+        /// When down key is pressed, selected element should move forward.
+        /// When up key is pressed, selected element should move back.
+        /// </summary>
+        public void MoveSelection(Direction direction)
+        {
+            var oldItem = FilteredResults.FirstOrDefault(item => item.IsSelected);
+            if (oldItem == null) return;
+
+            int newItemIndex = FilteredResults.IndexOf(oldItem);
+            if ((newItemIndex <= 0 && direction == Direction.Up) ||
+                (newItemIndex >= FilteredResults.Count() - 1 && direction == Direction.Down)) return;
+
+            if (direction == Direction.Down)
+            {
+                newItemIndex++;
+            }
+            else
+            {
+                newItemIndex--;
+            }
+
+            oldItem.IsSelected = false;
+            var newItem = FilteredResults.ElementAt(newItemIndex);
+            newItem.IsSelected = true;
+        }
+
+        #endregion
+
         #region Search field manipulation
 
         /// <summary>
@@ -891,8 +1025,9 @@ namespace Dynamo.ViewModels
             dynamoViewModel.ExecuteCommand(new DynamoModel.CreateNodeCommand(
                 nodeModel, position.X, position.Y, useDeafultPosition, true));
 
-            dynamoViewModel.ReturnFocusToSearch();
+            OnRequestFocusSearch();
         }
+
         #endregion
 
         #region Commands
@@ -929,12 +1064,89 @@ namespace Dynamo.ViewModels
 
         public void FocusSearch(object parameter)
         {
-            OnRequestFocusSearch(dynamoViewModel, EventArgs.Empty);
+            OnRequestFocusSearch();
         }
 
         internal bool CanFocusSearch(object parameter)
         {
             return true;
+        }
+
+        internal void ToggleLayout(object parameter)
+        {
+            IsDetailedMode = (bool)parameter;
+        }
+
+        internal void UnSelectAllCategories()
+        {
+            foreach (var category in SearchCategories)
+            {
+                category.IsSelected = false;
+            }
+        }
+
+        internal void SelectAllCategories(object parameter)
+        {
+            foreach (var category in SearchCategories)
+            {
+                category.IsSelected = true;
+            }
+        }
+
+        /// <summary>
+        /// Sets IsExpanded = false to open category and all subcategories.
+        /// </summary>
+        internal void CollapseAll(IEnumerable<NodeCategoryViewModel> categories)
+        {
+            while (categories != null)
+            {
+                var category = categories.FirstOrDefault(cat => cat.IsExpanded);
+
+                if (category == null) break;
+                category.IsExpanded = false;
+
+                categories = category.SubCategories;
+            }
+        }
+
+        /// <summary>
+        /// This method is fired, when user clicks on class name in the search library view.
+        /// </summary>
+        /// <param name="className">Name of the class, that should be opened.</param>
+        internal void OpenSelectedClass(string className)
+        {
+            // Clear search text.
+            SearchText = String.Empty;
+            CollapseAll(BrowserRootCategories);
+            ClassNameToBeOpened = className;
+
+            if (String.IsNullOrEmpty(className)) return;
+
+            var categoryNames = className.Split(Configurations.CategoryDelimiterString.ToCharArray());
+
+            IEnumerable<NodeCategoryViewModel> categories = BrowserRootCategories;
+            foreach (var name in categoryNames)
+            {
+                var category = categories.FirstOrDefault(cat => cat.Name == name);
+                if (category != null)
+                {
+                    category.IsExpanded = true;
+                    categories = category.SubCategories;
+                }
+                // Category is null means that we are at the last level of hierarchy.
+                // The next level is class level.
+                else
+                {
+                    category = categories.FirstOrDefault(cat => cat is ClassesNodeCategoryViewModel);
+                    if (category == null) break;
+                    category.IsExpanded = true;
+
+                    var classItem = category.Items.FirstOrDefault(item => item.Name == name) as NodeCategoryViewModel;
+                    if (classItem == null) break;
+                    classItem.IsExpanded = true;
+                    break;
+                }
+            }
         }
 
         #endregion

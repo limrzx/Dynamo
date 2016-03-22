@@ -3,21 +3,17 @@ using System.Collections;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
-
-using Dynamo.Engine.CodeGeneration;
-using Dynamo.Models;
-using Dynamo.Nodes;
-using DSCoreNodesUI.Properties;
-
 using Autodesk.DesignScript.Runtime;
+using CoreNodeModels.Properties;
+using Dynamo.Engine.CodeGeneration;
+using Dynamo.Graph.Nodes;
 using ProtoCore.AST.AssociativeAST;
 using VMDataBridge;
 
-
-namespace DSCore.File
+namespace CoreNodeModels.Input
 {
     [SupressImportIntoVM]
-    public abstract class FileSystemBrowser : DSCoreNodesUI.String
+    public abstract class FileSystemBrowser : String
     {
         protected FileSystemBrowser(string tip)
             : base()
@@ -45,10 +41,11 @@ namespace DSCore.File
 
     [NodeName("File Path")]
     [NodeCategory(BuiltinNodeCategories.CORE_INPUT)]
-    [NodeDescription("FilenameNodeDescription", typeof(DSCoreNodesUI.Properties.Resources))]
-    [NodeSearchTags("FilePathSearchTags", typeof(DSCoreNodesUI.Properties.Resources))]
+    [NodeDescription("FilenameNodeDescription", typeof(Resources))]
+    [NodeSearchTags("FilePathSearchTags", typeof(Resources))]
     [SupressImportIntoVM]
     [IsDesignScriptCompatible]
+    [AlsoKnownAs("DSCore.File.Filename", "DSCoreNodesUI.Input.Filename")]
     public class Filename : FileSystemBrowser
     {
         public Filename() : base("Filename")
@@ -59,10 +56,11 @@ namespace DSCore.File
 
     [NodeName("Directory Path")]
     [NodeCategory(BuiltinNodeCategories.CORE_INPUT)]
-    [NodeDescription("DirectoryNodeDescription", typeof(DSCoreNodesUI.Properties.Resources))]
-    [NodeSearchTags("DirectoryPathSearchTags", typeof(DSCoreNodesUI.Properties.Resources))]
+    [NodeDescription("DirectoryNodeDescription", typeof(Resources))]
+    [NodeSearchTags("DirectoryPathSearchTags", typeof(Resources))]
     [SupressImportIntoVM]
     [IsDesignScriptCompatible]
+    [AlsoKnownAs("DSCore.File.Directory", "DSCoreNodesUI.Input.Directory")]
     public class Directory : FileSystemBrowser
     {
         public Directory() : base("Directory")
@@ -183,14 +181,15 @@ namespace DSCore.File
 
     [NodeName("File.FromPath")]
     [NodeCategory(BuiltinNodeCategories.CORE_IO)]
-    [NodeDescription("FileObjectNodeDescription", typeof(DSCoreNodesUI.Properties.Resources))]
-    [NodeSearchTags("FilePathSearchTags", typeof(DSCoreNodesUI.Properties.Resources))]
+    [NodeDescription("FileObjectNodeDescription", typeof(Resources))]
+    [NodeSearchTags("FilePathSearchTags", typeof(Resources))]
     [SupressImportIntoVM]
     [IsDesignScriptCompatible]
+    [AlsoKnownAs("DSCore.File.FileObject", "DSCoreNodesUI.Input.FileObject")]
     public class FileObject : FileSystemObject<FileInfo>
     {
         public FileObject()
-            : base(IO.File.FromPath)
+            : base(DSCore.IO.File.FromPath)
         {
             InPortData.Add(new PortData("path", Resources.FileObjectPortDataPathToolTip));
             OutPortData.Add(new PortData("file", Resources.FileObjectPortDataResultToolTip));
@@ -238,14 +237,15 @@ namespace DSCore.File
 
     [NodeName("Directory.FromPath")]
     [NodeCategory(BuiltinNodeCategories.CORE_IO)]
-    [NodeDescription("DirectoryObjectNodeDescription",typeof(DSCoreNodesUI.Properties.Resources))]
-    [NodeSearchTags("DirectoryPathSearchTags", typeof(DSCoreNodesUI.Properties.Resources))]
+    [NodeDescription("DirectoryObjectNodeDescription",typeof(Resources))]
+    [NodeSearchTags("DirectoryPathSearchTags", typeof(Resources))]
     [SupressImportIntoVM]
     [IsDesignScriptCompatible]
+    [AlsoKnownAs("DSCore.File.DirectoryObject", "DSCoreNodesUI.Input.DirectoryObject")]
     public class DirectoryObject : FileSystemObject<DirectoryInfo>
     {
         public DirectoryObject()
-            : base(IO.Directory.FromPath)
+            : base(DSCore.IO.Directory.FromPath)
         {
             InPortData.Add(new PortData("path", Resources.DirectoryObjectPortDataPathToolTip));
             OutPortData.Add(new PortData("directory", Resources.DirectoryObjectPortDataResultToolTip));

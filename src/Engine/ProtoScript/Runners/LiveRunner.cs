@@ -64,6 +64,15 @@ namespace ProtoScript.Runners
     public class GraphSyncData
     {
         /// <summary>
+        /// Session ID
+        /// </summary>
+        public Guid SessionID
+        {
+            get;
+            private set;
+        }
+
+        /// <summary>
         /// Deleted sub trees.
         /// </summary>
         public List<Subtree> DeletedSubtrees
@@ -134,8 +143,14 @@ namespace ProtoScript.Runners
             }
         }
 
-        public GraphSyncData(List<Subtree> deleted, List<Subtree> added, List<Subtree> modified)
+        public GraphSyncData(List<Subtree> deleted, List<Subtree> added, List<Subtree> modified):
+            this(Guid.Empty, deleted, added, modified)
         {
+        }
+
+        public GraphSyncData(Guid sessionID, List<Subtree> deleted, List<Subtree> added, List<Subtree> modified)
+        {
+            SessionID = sessionID;
             DeletedSubtrees = deleted ?? new List<Subtree>();
             AddedSubtrees = added ?? new List<Subtree>();
             ModifiedSubtrees = modified ?? new List<Subtree>();
@@ -415,7 +430,6 @@ namespace ProtoScript.Runners
                     executingNode,
                     rt.CurrentExecutive.CurrentDSASMExec,
                     executingNode.exprUID,
-                    executingNode.modBlkUID,
                     executingNode.IsSSANode(),
                     true,
                     0,
@@ -793,7 +807,7 @@ namespace ProtoScript.Runners
                         {
                             if (assocNode is BinaryExpressionNode)
                             {
-                                if (gnode.exprUID == (assocNode as BinaryExpressionNode).exprUID)
+                                if (gnode.exprUID == (assocNode as BinaryExpressionNode).ExpressionUID)
                                 {
                                     // Check if the procedure associatied with this graphnode matches thename and arg count of the modified proc
                                     if (null != gnode.firstProc)
@@ -859,7 +873,7 @@ namespace ProtoScript.Runners
                                 if (prevIdent.Equals(rnode))
                                 {
                                     newNode.InheritID(prevBinaryNode.ID);
-                                    newNode.exprUID = prevBinaryNode.exprUID;
+                                    newNode.ExpressionUID = prevBinaryNode.ExpressionUID;
                                 }
                             }
                         }
@@ -941,7 +955,7 @@ namespace ProtoScript.Runners
                                                 if (prevIdent.Equals(bnode.LeftNode as IdentifierNode))
                                                 {
                                                     bnode.InheritID(prevBinaryNode.ID);
-                                                    bnode.exprUID = prevBinaryNode.exprUID;
+                                                    bnode.ExpressionUID = prevBinaryNode.ExpressionUID;
                                                 }
                                             }
                                         }
@@ -1128,16 +1142,9 @@ namespace ProtoScript.Runners
         void UpdateGraph(GraphSyncData syncData);
         List<Guid> PreviewGraph(GraphSyncData syncData);
         void UpdateCmdLineInterpreter(string code);
-        ProtoCore.Mirror.RuntimeMirror QueryNodeValue(Guid nodeId);
         ProtoCore.Mirror.RuntimeMirror InspectNodeValue(string nodeName);
 
         void UpdateGraph(AssociativeNode astNode);
-        #endregion
-
-        #region Asynchronous call
-        void BeginUpdateGraph(GraphSyncData syncData);
-        void BeginQueryNodeValue(Guid nodeGuid);
-        void BeginQueryNodeValues(List<Guid> nodeGuid);
         #endregion
 
         string GetCoreDump();
@@ -1146,10 +1153,8 @@ namespace ProtoScript.Runners
         void ReInitializeLiveRunner();
         IDictionary<Guid, List<ProtoCore.Runtime.WarningEntry>> GetRuntimeWarnings();
         IDictionary<Guid, List<ProtoCore.BuildData.WarningEntry>> GetBuildWarnings();
-        
-        // Event handlers for the notification from asynchronous call
-        event NodeValueReadyEventHandler NodeValueReady;
-        event GraphUpdateReadyEventHandler GraphUpdateReady;
+        IEnumerable<Guid> GetExecutedAstGuids(Guid sessionID);
+        void RemoveRecordedAstGuidsForSession(Guid SessionID);
     }
 
     public partial class LiveRunner : ILiveRunner, IDisposable
@@ -1213,9 +1218,8 @@ namespace ProtoScript.Runners
         }
 
         private ProtoScriptRunner runner;
-        private ProtoRunner.ProtoVMState vmState;
-        private ProtoCore.Core runnerCore = null;
-        public ProtoCore.Core Core
+        private Core runnerCore = null;
+        public Core Core
         {
             get
             {
@@ -1244,17 +1248,10 @@ namespace ProtoScript.Runners
         private Configuration configuration = null;
         private int deltaSymbols = 0;
         private ProtoCore.CompileTime.Context staticContext = null;
-
-        private readonly Object operationsMutex = new object();
-
-        private Queue<Task> taskQueue;
-
-        private Thread workerThread;
-
-        private bool terminating;
-
+        private readonly object mutexObject = new object();
         private ChangeSetComputer changeSetComputer;
         private ChangeSetApplier changeSetApplier;
+        private Dictionary<Guid, List<Guid>> executedAstGuids = new Dictionary<Guid, List<Guid>>();
 
         public LiveRunner()
             : this(new Configuration())
@@ -1269,15 +1266,8 @@ namespace ProtoScript.Runners
 
             InitCore();
 
-            taskQueue = new Queue<Task>();
-
-            workerThread = new Thread(new ThreadStart(TaskExecMethod));
-            workerThread.IsBackground = true;
-            workerThread.Start();
-
             staticContext = new ProtoCore.CompileTime.Context();
 
-            terminating = false;
             changeSetComputer = new ChangeSetComputer(runnerCore, runtimeCore);
             changeSetApplier = new ChangeSetApplier();
         }
@@ -1299,27 +1289,7 @@ namespace ProtoScript.Runners
 
                 if (runtimeCore != null)
                 {
-                    runtimeCore.FFIPropertyChangedMonitor.FFIPropertyChangedEventHandler -=
-                        FFIPropertyChanged;
                     runtimeCore.Cleanup();
-                }
-
-                terminating = true;
-
-                lock (taskQueue)
-                {
-                    taskQueue.Clear();
-                }
-
-                if (workerThread != null)
-                {
-                    // waiting for thread to finish
-                    if (workerThread.IsAlive)
-                    {
-                        workerThread.Join();
-                    }
-
-                    workerThread = null;
                 }
             }
         }
@@ -1328,15 +1298,14 @@ namespace ProtoScript.Runners
         {
             coreOptions = new Options
             {
-                GenerateExprID = true,
                 IsDeltaExecution = true,
                 BuildOptErrorAsWarning = true,
                 ExecutionMode = ExecutionMode.Serial
             };
 
             runnerCore = new ProtoCore.Core(coreOptions);
-            runnerCore.Compilers.Add(ProtoCore.Language.kAssociative, new ProtoAssociative.Compiler(runnerCore));
-            runnerCore.Compilers.Add(ProtoCore.Language.kImperative, new ProtoImperative.Compiler(runnerCore));
+            runnerCore.Compilers.Add(ProtoCore.Language.Associative, new ProtoAssociative.Compiler(runnerCore));
+            runnerCore.Compilers.Add(ProtoCore.Language.Imperative, new ProtoImperative.Compiler(runnerCore));
 
             runnerCore.Options.RootModulePathName = configuration.RootModulePathName;
             runnerCore.Options.IncludeDirectories = configuration.SearchDirectories.ToList();
@@ -1344,8 +1313,6 @@ namespace ProtoScript.Runners
             {
                 runnerCore.Configurations[item.Key] = item.Value;
             }
-
-            vmState = null;
 
             CreateRuntimeCore();
         }
@@ -1356,7 +1323,6 @@ namespace ProtoScript.Runners
         private void CreateRuntimeCore()
         {
             runtimeCore = new ProtoCore.RuntimeCore(runnerCore.Heap, runnerCore.Options);
-            runtimeCore.FFIPropertyChangedMonitor.FFIPropertyChangedEventHandler += FFIPropertyChanged;
         }
 
         /// <summary>
@@ -1381,80 +1347,6 @@ namespace ProtoScript.Runners
             deltaSymbols = runnerCore.GlobOffset;
         }
 
-        private void FFIPropertyChanged(FFIPropertyChangedEventArgs arg)
-        {
-            lock (taskQueue)
-            {
-                taskQueue.Enqueue(new PropertyChangedTask(this, arg.hostGraphNode));
-            }
-        }
-
-        #region Public Live Runner Events
-
-        public event NodeValueReadyEventHandler NodeValueReady = null;
-        public event GraphUpdateReadyEventHandler GraphUpdateReady = null;
-
-        #endregion
-
-        public void BeginUpdateGraph(GraphSyncData syncData)
-        {
-            lock (taskQueue)
-            {
-                taskQueue.Enqueue(new UpdateGraphTask(syncData, this));
-            }
-        }
-
-        public void BeginQueryNodeValue(Guid nodeGuid)
-        {
-            lock (taskQueue)
-            {
-                taskQueue.Enqueue(
-                    new NodeValueRequestTask(nodeGuid, this));
-            }
-        }
-
-        public void BeginQueryNodeValues(List<Guid> nodeGuids)
-        {
-            lock (taskQueue)
-            {
-                foreach (Guid nodeGuid in nodeGuids)
-                {
-                    taskQueue.Enqueue(
-                        new NodeValueRequestTask(nodeGuid, this));
-                }
-            }
-        }
-
-        /// <summary>
-        /// Query for a node value given its UID. This will block until the value is available.
-        /// This uses the expression interpreter to evaluate a node variable's value.
-        /// It will only serviced when all ASync calls have been completed
-        /// </summary>
-        /// <param name="nodeId"></param>
-        /// <returns></returns>
-        public ProtoCore.Mirror.RuntimeMirror QueryNodeValue(Guid nodeGuid)
-        {
-            while (true)
-            {
-                lock (taskQueue)
-                {
-                    //Spin waiting for the queue to be empty
-                    if (taskQueue.Count == 0)
-                    {
-
-                        //No entries and we have the lock
-                        //Synchronous query to get the node
-
-                        return InternalGetNodeValue(nodeGuid);
-                    }
-                }
-                Thread.Sleep(0);
-            }
-
-        }
-
-
-
         /// <summary>
         /// Inspects the VM for the value of a node given its variable name. 
         /// As opposed to QueryNodeValue, this does not use the Expression Interpreter
@@ -1466,20 +1358,9 @@ namespace ProtoScript.Runners
         ///
         public ProtoCore.Mirror.RuntimeMirror InspectNodeValue(string nodeName)
         {
-            while (true)
+            lock (mutexObject)
             {
-                lock (taskQueue)
-                {
-                    //Spin waiting for the queue to be empty
-                    if (taskQueue.Count == 0)
-                    {
-                        //return GetWatchValue(nodeName);
-                        const int blockID = 0;
-                        ProtoCore.Mirror.RuntimeMirror runtimeMirror = ProtoCore.Mirror.Reflection.Reflect(nodeName, blockID, runtimeCore, runnerCore);
-                        return runtimeMirror;
-                    }
-                }
-                Thread.Sleep(0);
+                return Reflection.Reflect(nodeName, 0, runtimeCore, runnerCore);
             }
         }
 
@@ -1533,16 +1414,9 @@ namespace ProtoScript.Runners
         /// <param name="syncData"></param>
         public List<Guid> PreviewGraph(GraphSyncData syncData)
         {
-            while (true)
+            lock (mutexObject)
             {
-                lock (taskQueue)
-                {
-                    if (taskQueue.Count == 0)
-                    {
-                        return PreviewInternal(syncData);                       
-                    }
-                }
-                Thread.Sleep(1);
+                return PreviewInternal(syncData);
             }
         }
 
@@ -1552,17 +1426,9 @@ namespace ProtoScript.Runners
         /// <param name="syncData"></param>
         public void UpdateGraph(GraphSyncData syncData)
         {
-            while (true)
+            lock (mutexObject)
             {
-                lock (taskQueue)
-                {
-                    if (taskQueue.Count == 0)
-                    {
-                        SynchronizeInternal(syncData);
-                        return;
-                    }
-                }
-                Thread.Sleep(0);
+                SynchronizeInternal(syncData);
             }
         }
 
@@ -1605,73 +1471,13 @@ namespace ProtoScript.Runners
         /// <param name="code"></param>
         public void UpdateCmdLineInterpreter(string code)
         {
-            while (true)
+            lock (mutexObject)
             {
-                lock (taskQueue)
-                {
-                    //Spin waiting for the queue to be empty
-                    if (taskQueue.Count == 0)
-                    {
-                        SynchronizeInternal(code);
-                        return;
-                    }
-                }
-                Thread.Sleep(0);
+                SynchronizeInternal(code);
             }
         }
-
-        //Secondary thread
-        private void TaskExecMethod()
-        {
-            while (!terminating)
-            {
-                Task task = null;
-
-                lock (taskQueue)
-                {
-                    if (taskQueue.Count > 0)
-                        task = taskQueue.Dequeue();
-
-                    //The task has to be executed inside the critical region
-                    //otherwise it will race with the sync based on the taskQueue count
-
-                    //TODO: This should be seperated into two seperate mutexes, one of the
-                    //queue and the other protecting execution
-                    if (task != null)
-                    {
-                        task.Execute();
-                        continue;
-
-                    }
-                }
-                Thread.Sleep(1);
-            }
-        }
-
-
 
         #region Internal Implementation
-
-        /// <summary>
-        /// This is being called currently as it uses the Expression interpreter which does not
-        /// work well with delta execution. Instead we are currently inspecting into the VM using Mirrors
-        /// </summary>
-        /// <param name="varname"></param>
-        /// <returns></returns>
-        private ProtoCore.Mirror.RuntimeMirror InternalGetNodeValue(string varname)
-        {
-            Validity.Assert(null != vmState);
-
-            // Comment Jun: all symbols are in the global block as there is no notion of scoping the the graphUI yet.
-            const int blockID = 0;
-
-            return vmState.LookupName(varname, blockID);
-        }
-
-        private ProtoCore.Mirror.RuntimeMirror InternalGetNodeValue(Guid nodeGuid)
-        {
-            throw new NotImplementedException();
-        }
 
         private bool Compile(List<AssociativeNode> astList, Core targetCore)
         {
@@ -1685,19 +1491,25 @@ namespace ProtoScript.Runners
             return succeeded;
         }
 
-        private ProtoRunner.ProtoVMState Execute(bool isCodeCompiled)
+        private void Execute(bool isCodeCompiled)
         {
             try
             {
                 SetupRuntimeCoreForExecution(isCodeCompiled);
-                runner.ExecuteLive(runnerCore, runtimeCore);
+                if (isCodeCompiled)
+                {
+                    // If isCodeCompiled is false, nothing to execute but still
+                    // bounce and push stack frame. Need to investigate why 
+                    // previouslsy ExecuteLive() is called when isCodeCompiled is
+                    // false.
+                    runner.ExecuteLive(runnerCore, runtimeCore);
+                }
             }
             catch (ProtoCore.Exceptions.ExecutionCancelledException)
             {
                 runtimeCore.Cleanup();
                 ReInitializeLiveRunner();
             }
-            return new ProtoRunner.ProtoVMState(runnerCore, runtimeCore);
         }
 
         private bool CompileAndExecute(string code)
@@ -1706,7 +1518,7 @@ namespace ProtoScript.Runners
             bool succeeded = runner.CompileAndGenerateExe(code, runnerCore, new ProtoCore.CompileTime.Context());
             if (succeeded)
             {
-                vmState = Execute(!string.IsNullOrEmpty(code));
+                Execute(!string.IsNullOrEmpty(code));
             }
             return succeeded;
         }
@@ -1716,7 +1528,7 @@ namespace ProtoScript.Runners
             bool succeeded = Compile(astList, runnerCore);
             if (succeeded)
             {
-                vmState = Execute(astList.Count > 0);
+                Execute(astList.Count > 0);
             }
             return succeeded;
         }
@@ -1761,6 +1573,14 @@ namespace ProtoScript.Runners
                 ResetForDeltaExecution();
                 runnerCore.Options.ApplyUpdate = true;
                 Execute(true);
+
+                // Execute() will push a stack frame in SetupAndBounceStackFrame().
+                // In normal execution, that stack frame will pop in RETB. But in
+                // ApplyUpdate(), there is no RETB instruciton, so need to manually
+                // cleanup stack frame.
+                StackValue restoreFramePointer = runtimeCore.RuntimeMemory.GetAtRelative(ProtoCore.DSASM.StackFrame.FrameIndexFramePointer);
+                runtimeCore.RuntimeMemory.FramePointer = (int)restoreFramePointer.IntegerValue;
+                runtimeCore.RuntimeMemory.PopFrame(ProtoCore.DSASM.StackFrame.StackFrameSize);
             }
             ForceGC();
         }
@@ -1842,6 +1662,10 @@ namespace ProtoScript.Runners
             changeSetApplier.Apply(runnerCore, runtimeCore, changeSetComputer.csData);
 
             CompileAndExecuteForDeltaExecution(finalDeltaAstList);
+
+            var guids = runtimeCore.ExecutedAstGuids.ToList();
+            executedAstGuids[syncData.SessionID] = guids;
+            runtimeCore.RemoveExecutedAstGuids();
         }
 
         private void SynchronizeInternal(string code)
@@ -1983,10 +1807,14 @@ namespace ProtoScript.Runners
                                      .OrderBy(w => w.GraphNodeGuid)
                                      .GroupBy(w => w.GraphNodeGuid);
 
-            foreach (var w in warnings)
+            foreach (var warningGroup in warnings)
             {
-                Guid guid = w.FirstOrDefault().GraphNodeGuid;
-                ret[guid] = new List<ProtoCore.Runtime.WarningEntry>(w);
+                Guid guid = warningGroup.FirstOrDefault().GraphNodeGuid;
+                // If there are two warnings in the same expression, take the first one.
+                var trimmedWarnings = warningGroup.OrderBy(w => w.ExpressionID)
+                                                  .GroupBy(w => w.ExpressionID)
+                                                  .Select(g => g.FirstOrDefault());
+                ret[guid] = new List<ProtoCore.Runtime.WarningEntry>(trimmedWarnings);
             }
 
             return ret;
@@ -2019,6 +1847,23 @@ namespace ProtoScript.Runners
             return ret;
         }
 
+        public IEnumerable<Guid> GetExecutedAstGuids(Guid sessionID)
+        {
+            List<Guid> guids = null;
+            if (executedAstGuids.TryGetValue(sessionID, out guids))
+            {
+                return guids;
+            }
+            else
+            {
+                return new List<Guid>();
+            }
+        }
+
+        public void RemoveRecordedAstGuidsForSession(Guid SessionID)
+        {
+            executedAstGuids.Remove(SessionID);
+        }
         #endregion
     }
 

@@ -1,25 +1,24 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Configuration;
 using System.Globalization;
 using System.Linq;
 using System.Xml;
 using Autodesk.DesignScript.Runtime;
-
+using Dynamo.Graph;
+using Dynamo.Graph.Nodes;
 using Dynamo.Migration;
-using Dynamo.Models;
-using Dynamo.Nodes;
-
 using ProtoCore.AST.AssociativeAST;
+using CoreNodeModels.Properties;
 
-namespace DSCoreNodesUI.Input
+namespace CoreNodeModels.Input
 {
     [NodeName("Integer Slider")]
     [NodeCategory(BuiltinNodeCategories.CORE_INPUT)]
-    [NodeDescription("IntegerSliderNodeDescription", typeof(DSCoreNodesUI.Properties.Resources))]
-    [NodeSearchTags("IntegerSliderSearchTags", typeof(DSCoreNodesUI.Properties.Resources))]
+    [NodeDescription("IntegerSliderNodeDescription", typeof(Resources))]
+    [NodeSearchTags("IntegerSliderSearchTags", typeof(Resources))]
     [SupressImportIntoVM]
     [IsDesignScriptCompatible]
+    [AlsoKnownAs("DSCoreNodesUI.Input.IntegerSlider")]
     public class IntegerSlider : SliderBase<int>
     {
         public IntegerSlider()
@@ -29,7 +28,7 @@ namespace DSCoreNodesUI.Input
             Min = 0;
             Max = 100;
             Step = 1;
-            Value = 0;
+            Value = 1;
             ShouldDisplayPreviewCore = false;
         }
 
@@ -163,7 +162,7 @@ namespace Dynamo.Nodes
         {
             var migrationData = new NodeMigrationData(data.Document);
             XmlElement oldNode = data.MigratedNodes.ElementAt(0);
-            XmlElement newNode = MigrationManager.CloneAndChangeName(oldNode, "DSCoreNodesUI.Input.IntegerSlider", "Integer Slider", true);
+            XmlElement newNode = MigrationManager.CloneAndChangeName(oldNode, "CoreNodeModels.Input.IntegerSlider", "Integer Slider", true);
 
             migrationData.AppendNode(newNode);
             return migrationData;

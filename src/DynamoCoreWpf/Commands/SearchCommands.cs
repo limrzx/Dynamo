@@ -7,45 +7,25 @@ namespace Dynamo.ViewModels
         private DelegateCommand focusSearch;
         public DelegateCommand FocusSearchCommand
         {
-            get
-            {
-                if (focusSearch == null)
-                    focusSearch = new DelegateCommand(this.FocusSearch, this.CanFocusSearch);
-                return focusSearch;
-            }
+            get { return focusSearch ?? (focusSearch = new DelegateCommand(FocusSearch, CanFocusSearch)); }
         }
 
         private DelegateCommand search;
         public DelegateCommand SearchCommand
         {
-            get
-            {
-                if (search == null)
-                    search = new DelegateCommand(this.Search, this.CanSearch);
-                return search;
-            }
+            get { return search ?? (search = new DelegateCommand(Search, CanSearch)); }
         }
 
         private DelegateCommand showSearch;
         public DelegateCommand ShowSearchCommand
         {
-            get
-            {
-                if (showSearch == null)
-                    showSearch = new DelegateCommand(this.ShowSearch, this.CanShowSearch);
-                return showSearch;
-            }
+            get { return showSearch ?? (showSearch = new DelegateCommand(ShowSearch, CanShowSearch)); }
         }
 
         private DelegateCommand hideSearch;
         public DelegateCommand HideSearchCommand
         {
-            get
-            {
-                if (hideSearch == null)
-                    hideSearch = new DelegateCommand(this.HideSearch, this.CanHideSearch);
-                return hideSearch;
-            }
+            get { return hideSearch ?? (hideSearch = new DelegateCommand(HideSearch, CanHideSearch)); }
         }
 
         public DelegateCommand ImportLibraryCommand
@@ -58,5 +38,21 @@ namespace Dynamo.ViewModels
         {
             get { return dynamoViewModel.ShowPackageManagerSearchCommand; }
         }
+
+        private DelegateCommand toggleLayoutCommand;
+        public DelegateCommand ToggleLayoutCommand
+        {
+            get { return toggleLayoutCommand ?? (toggleLayoutCommand = new DelegateCommand(ToggleLayout)); }
+        }
+
+        private DelegateCommand selectAllCategoriesCommand;
+        public DelegateCommand SelectAllCategoriesCommand
+        {
+            get
+            {
+                return selectAllCategoriesCommand ??
+                       (selectAllCategoriesCommand = new DelegateCommand(SelectAllCategories));
+            }
+        }        
     }
 }

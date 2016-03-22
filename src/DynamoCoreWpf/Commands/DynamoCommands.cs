@@ -75,6 +75,7 @@ namespace Dynamo.ViewModels
             if (Model.DebugSettings.VerboseLogging)
                 model.Logger.Log("Command: " + command);
 
+            OnRequestReturnFocusToView(); 
             this.model.ExecuteCommand(command);
         }
 
@@ -111,6 +112,9 @@ namespace Dynamo.ViewModels
                     break;
 
                 case "DeleteModelCommand":
+                    CurrentSpaceViewModel.CancelActiveState();
+                    RaiseCanExecuteUndoRedo();
+                    break;
                 case "CreateNodeCommand":
                 case "CreateProxyNodeCommand":
                 case "CreateNoteCommand":
@@ -121,8 +125,8 @@ namespace Dynamo.ViewModels
                 case "ConvertNodesToCodeCommand":
                 case "UngroupModelCommand":
                 case "AddModelToGroupCommand":
-                    UndoCommand.RaiseCanExecuteChanged();
-                    RedoCommand.RaiseCanExecuteChanged();
+                case "CreateAndConnectNodeCommand":
+                    RaiseCanExecuteUndoRedo();
                     break;
 
                 case "SwitchTabCommand":
@@ -177,6 +181,7 @@ namespace Dynamo.ViewModels
                 case "AddModelToGroupCommand":
                 case "AddPresetCommand":
                 case "ApplyPresetCommand":
+                case "CreateAndConnectNodeCommand":
                     // for this commands there is no need
                     // to do anything before execution
                     break;

@@ -7,6 +7,7 @@ using System.Globalization;
 using System.Linq;
 using System.Threading;
 using Autodesk.DesignScript.Runtime;
+using DSCore.Properties;
 
 #endregion
 
@@ -235,9 +236,97 @@ namespace DSCore
         }
 
         /// <summary>
+        ///     Sort list based on its keys
+        /// </summary>
+        /// <param name="list">list to be sorted</param>
+        /// <param name="keys">list of keys</param>
+        /// <returns name="sorted list">sorted list</returns>
+        /// <returns name="sorted keys">sorted keys</returns>
+        /// <search>sort;key</search>
+        [MultiReturn(new[] { "sorted list", "sorted keys" })]
+        public static IDictionary SortByKey(IList list, IList keys)
+        {
+            if (list == null || keys == null)
+                return null;
+
+            var containsSublists = keys.Cast<object>().Any(key => key is IList || key is ICollection);
+            if (containsSublists)
+            {
+                throw new ArgumentException(Resources.InvalidKeysErrorMessage);
+            }
+
+            if (list.Count != keys.Count)
+            {
+                throw new ArgumentException(Resources.InvalidKeysLenghtErrorMessage);
+            }
+
+            var pairs = list.Cast<object>()
+                    .Zip(keys.Cast<object>(), (item, key) => new { item, key });
+
+            var numberKeyPairs = pairs.Where(pair => pair.key is double || pair.key is int || pair.key is float);
+            // We don't use Except, because Except doesn't return duplicates.
+            var keyPairs = pairs.Where(
+                pair =>
+                    !numberKeyPairs.Any(
+                        numberPair => numberPair.item == pair.item && numberPair.key == pair.key));
+
+            // Sort.
+            numberKeyPairs = numberKeyPairs.OrderBy(pair => Convert.ToDouble(pair.key));
+            keyPairs = keyPairs.OrderBy(pair => pair.key);
+
+            // First items with number keys, then items with letter keys.
+            var sortedPairs = numberKeyPairs.Concat(keyPairs);
+
+            var sortedList = sortedPairs.Select(x => x.item).ToList();
+            var sortedKeys = sortedPairs.Select(x => x.key).ToList();
+
+            return new Dictionary<object, object>
+            {
+                { "sorted list", sortedList },
+                { "sorted keys", sortedKeys }
+            };
+        }
+
+        /// <summary>
+        ///     Group items into sub-lists based on their like key values
+        /// </summary>
+        /// <param name="list">List of items to group as sublists</param>
+        /// <param name="keys">Key values, one per item in the input list, used for grouping the items</param>
+        /// <returns name="groups">list of sublists, with items grouped by like key values</returns>
+        /// <returns name="unique keys">key value corresponding to each group</returns>
+        /// <search>list;group;groupbykey;</search>
+        [MultiReturn(new[] { "groups", "unique keys" })]
+        public static IDictionary GroupByKey(IList list, IList keys)
+        {
+            if (list.Count != keys.Count)
+            {
+                throw new ArgumentException(Resources.InvalidKeysLenghtErrorMessage);
+            }
+
+            var containsSublists = keys.Cast<object>().Any(key => key is IList || key is ICollection);
+            if (containsSublists)
+            {
+                throw new ArgumentException(Resources.InvalidKeysErrorMessage);
+            }
+
+            var groups =
+                list.Cast<object>().Zip(keys.Cast<object>(), (item, key) => new { item, key })
+                    .GroupBy(x => x.key)
+                    .Select(x => x.Select(y => y.item).ToList());
+
+            var uniqueItems = keys.Cast<object>().Distinct().ToList();
+
+            return new Dictionary<object, object>
+            {
+                { "groups", groups },
+                { "unique keys", uniqueItems }
+            };
+        }
+
+        /// <summary>
         ///     Adds an item to the beginning of a list.
         /// </summary>
-        /// <param name="item">Item to be added.</param>
+        /// <param name="item">Item to be added. Item could be an object or a list.</param>
         /// <param name="list">List to add on to.</param>
         /// <returns name="list">New list.</returns>
         /// <search>insert,add,item,front,start,begin</search>
@@ -251,10 +340,10 @@ namespace DSCore
         /// <summary>
         ///     Adds an item to the end of a list.
         /// </summary>
-        /// <param name="item">Item to be added.</param>
+        /// <param name="item">Item to be added.Item could be an object or a list.</param>
         /// <param name="list">List to add on to.</param>
         /// <search>insert,add,item,end</search>
-        public static IList AddItemToEnd(object item, IList list)
+        public static IList AddItemToEnd([ArbitraryDimensionArrayImport] object item, IList list)
         {
             return new ArrayList(list) //Clone original list
             {
@@ -304,8 +393,12 @@ namespace DSCore
         /// <search>shift,offset</search>
         public static IList ShiftIndices(IList list, int amount)
         {
-            if (amount == 0)
-                return list;
+            var count = list.Count;
+            if (count > 0 && System.Math.Abs(amount) > count)
+            {
+                amount = amount % count;
+            }
+            if (amount == 0) return list;
 
             IEnumerable<object> genList = list.Cast<object>();
             return
@@ -515,7 +608,7 @@ namespace DSCore
         /// <param name="lengths">Lengths of consecutive sublists to be created from the input list</param>
         /// <returns name="lists">Sublists created from the list</returns>
         /// <search>sublists,build sublists,slices,partitions,cut,listcontains,chop</search>
-        public static IList Chop(IList list, IList lengths)
+        public static IList Chop(IList list, List<int> lengths)
         {
             var finalList = new ArrayList();
             var currList = new ArrayList();
@@ -524,7 +617,7 @@ namespace DSCore
 
             // If there are not any lengths more than 0,
             // we return incoming list.
-            if (lengths.Cast<int>().All(x => x <= 0))
+            if (lengths.All(x => x <= 0))
             {
                 return list;
             }
@@ -534,7 +627,7 @@ namespace DSCore
                 // If number of items in current list equals length in list of lengths,
                 // we should add current list in final list.
                 // Or if length in list of lengths <= 0, we should process this length and move further.
-                if (count == ((int)lengths[lengthIndex]) || ((int)lengths[lengthIndex] <= 0))
+                if (count == lengths[lengthIndex] || lengths[lengthIndex] <= 0)
                 {
                     finalList.Add(currList);
                     currList = new ArrayList();

@@ -28,19 +28,16 @@ namespace ProtoScript.Runners
             {
                 //defining the global Assoc block that wraps the entire .ds source file
                 ProtoCore.LanguageCodeBlock globalBlock = new ProtoCore.LanguageCodeBlock();
-                globalBlock.language = ProtoCore.Language.kAssociative;
+                globalBlock.Language = ProtoCore.Language.Associative;
                 //globalBlock.language = ProtoCore.Language.kImperative;
-                globalBlock.body = code;
-                //the wrapper block can be given a unique id to identify it as the global scope
-                globalBlock.id = ProtoCore.LanguageCodeBlock.OUTERMOST_BLOCK_ID;
-
+                globalBlock.Code = code;
 
                 //passing the global Assoc wrapper block to the compiler
                 ProtoCore.CompileTime.Context context = new ProtoCore.CompileTime.Context();
                 context.SetExprInterpreterProperties(currentBlockID, runtimeCore.RuntimeMemory, runtimeCore.watchClassScope, runtimeCore.DebugProps);
-                ProtoCore.Language id = globalBlock.language;
+                ProtoCore.Language id = globalBlock.Language;
 
-                runtimeCore.ExprInterpreterExe.iStreamCanvas = new InstructionStream(globalBlock.language, Core);
+                runtimeCore.ExprInterpreterExe.iStreamCanvas = new InstructionStream(globalBlock.Language, Core);
 
                 // Save the global offset and restore after compilation
                 int offsetRestore = Core.GlobOffset;
@@ -68,7 +65,7 @@ namespace ProtoScript.Runners
             bool ssastate = Core.Options.GenerateSSA;
             bool ssastateExec = Core.Options.ExecuteSSA;
 
-            runtimeCore.Options.RunMode = ProtoCore.DSASM.InterpreterMode.kExpressionInterpreter;
+            runtimeCore.Options.RunMode = ProtoCore.DSASM.InterpreterMode.Expression;
 
             runtimeCore.Options.GenerateSSA = false;
             runtimeCore.Options.ExecuteSSA = false;
@@ -130,7 +127,7 @@ namespace ProtoScript.Runners
                     ProtoCore.DSASM.StackFrame stackFrame = null;
                     int locals = 0;
 
-                    StackValue sv = runtimeCore.CurrentExecutive.CurrentDSASMExec.Bounce(blockId, Core.watchStartPC, stackFrame, locals);
+                    runtimeCore.CurrentExecutive.CurrentDSASMExec.Bounce(blockId, Core.watchStartPC, stackFrame, locals);
 
                     // As Core.InterpreterProps stack member is pushed to every time the Expression Interpreter begins executing
                     // it needs to be popped off at the end for stack alignment - pratapa
@@ -199,7 +196,7 @@ namespace ProtoScript.Runners
 
             runtimeCore.Options.GenerateSSA = ssastate;
             runtimeCore.Options.ExecuteSSA = ssastateExec;
-            runtimeCore.Options.RunMode = ProtoCore.DSASM.InterpreterMode.kNormal;
+            runtimeCore.Options.RunMode = ProtoCore.DSASM.InterpreterMode.Normal;
 
             return new ExecutionMirror(runtimeCore.CurrentExecutive.CurrentDSASMExec, runtimeCore);
         }

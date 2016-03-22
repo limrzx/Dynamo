@@ -410,7 +410,7 @@ o = {0.800000,0.810000}
         }
 
         [Test]
-        [Category("DSDefinedClass_Ignored_DSDefinedClassSemantics")]
+        [Ignore][Category("DSDefinedClass_Ignored_DSDefinedClassSemantics")]
         [Category("SmokeTest")]
         public void T11_RangeExpressionUsingClasses()
         {
@@ -529,7 +529,7 @@ a1;a2;a3;a4;
         }
 
         [Test]
-        [Category("DSDefinedClass_Ignored_DSDefinedClassSemantics")]
+        [Ignore][Category("DSDefinedClass_Ignored_DSDefinedClassSemantics")]
         [Category("SmokeTest")]
         public void T14_RangeExpressionUsingClassMethods()
         {
@@ -853,7 +853,7 @@ b;
         }
 
         [Test]
-        [Category("DSDefinedClass_Ignored_DSDefinedClassSemantics")]
+        [Ignore][Category("DSDefinedClass_Ignored_DSDefinedClassSemantics")]
         [Category("SmokeTest")]
         public void T22_RangeExpressionsUsingClassMethods_2()
         {
@@ -884,7 +884,7 @@ d;
         }
 
         [Test]
-        [Category("DSDefinedClass_Ignored_DSDefinedClassSemantics")]
+        [Ignore][Category("DSDefinedClass_Ignored_DSDefinedClassSemantics")]
         public void T23_RangeExpressionsUsingClassMethods_3()
         {
             //string err = "1467069 - Sprint 23: rev 2634: 328588 An array cannot be used to index into an array, must throw warning";
@@ -1124,7 +1124,7 @@ a;b;
 }";
             ExecutionMirror mirror = thisTest.RunScriptSource(src);
             thisTest.VerifyBuildWarningCount(2);
-            TestFrameWork.VerifyBuildWarning(ProtoCore.BuildData.WarningID.kInvalidRangeExpression);
+            TestFrameWork.VerifyBuildWarning(ProtoCore.BuildData.WarningID.InvalidRangeExpression);
         }
 
         [Test]
@@ -1604,7 +1604,7 @@ c=twice(4);
         }
 
         [Test]
-        [Category("DSDefinedClass_Ignored_DSDefinedClassSemantics")]
+        [Ignore][Category("DSDefinedClass_Ignored_DSDefinedClassSemantics")]
         public void T27_RangeExpression_class_return_1463472_2()
         {
             string code = @"
@@ -1876,7 +1876,7 @@ a = 0;
 b = 0..10..a;
 ";
             ExecutionMirror mirror = thisTest.RunScriptSource(src);
-            TestFrameWork.VerifyRuntimeWarning(ProtoCore.Runtime.WarningID.kInvalidArguments);
+            TestFrameWork.VerifyRuntimeWarning(ProtoCore.Runtime.WarningID.InvalidArguments);
             thisTest.VerifyRuntimeWarningCount(1);
             thisTest.Verify("b", null);
         }
@@ -2133,6 +2133,42 @@ b = 0..10..a;
             thisTest.Verify("a3", new List<Object>());
 
             thisTest.VerifyRuntimeWarningCount(2);
+        }
+
+        [Test]
+        [Category("Regression")]
+        public void TestRangeExpressionOverLimit01()
+        {
+            string src = @"x = 1..200000000;";
+            thisTest.RunScriptSource(src);
+            thisTest.VerifyRuntimeWarningCount(1);
+        }
+
+        [Test]
+        [Category("Regression")]
+        public void TestRangeExpressionOverLimit02()
+        {
+            string src = @"x = 1..10000000000000000;";
+            thisTest.RunScriptSource(src);
+            thisTest.VerifyRuntimeWarningCount(1);
+        }
+
+        [Test]
+        [Category("Regression")]
+        public void TestRangeExpressionOverLimit03()
+        {
+            string src = @"x = 1..10..#200000000;";
+            thisTest.RunScriptSource(src);
+            thisTest.VerifyRuntimeWarningCount(1);
+        }
+
+        [Test]
+        [Category("Regression")]
+        public void TestRangeExpressionOverLimit04()
+        {
+            string src = @"x = 1..10..0.00000000001;";
+            thisTest.RunScriptSource(src);
+            thisTest.VerifyRuntimeWarningCount(1);
         }
     }
 }

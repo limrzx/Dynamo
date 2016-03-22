@@ -1,12 +1,8 @@
 using System;
 using System.Collections.Generic;
-using System.ComponentModel;
 using System.Linq;
-using Dynamo.Annotations;
-using Dynamo.Interfaces;
-using Dynamo.Models;
-using Dynamo.Search.Interfaces;
-using Dynamo.UI;
+using Dynamo.Configuration;
+using Dynamo.Graph.Nodes;
 
 namespace Dynamo.Search.SearchElements
 {
@@ -67,7 +63,7 @@ namespace Dynamo.Search.SearchElements
         /// </summary>
         /// <param name="categoryName">The name</param>
         /// <returns>A list of output</returns>
-        public static IEnumerable<string> SplitCategoryName(string categoryName)
+        internal static IEnumerable<string> SplitCategoryName(string categoryName)
         {
             if (String.IsNullOrEmpty(categoryName))
                 return Enumerable.Empty<string>();
@@ -141,7 +137,7 @@ namespace Dynamo.Search.SearchElements
             get
             {
                 if (string.IsNullOrEmpty(description))
-                    return Dynamo.UI.Configurations.NoDescriptionAvailable;
+                    return Configurations.NoDescriptionAvailable;
 
                 return description;
             }
@@ -243,12 +239,12 @@ namespace Dynamo.Search.SearchElements
         /// <summary>
         ///     Produces a new Node, via the ItemProduced event.
         /// </summary>
-        public void ProduceNode()
+        internal void ProduceNode()
         {
             OnItemProduced(ConstructNewNodeModel());
         }
 
-        public NodeModel CreateNode()
+        internal NodeModel CreateNode()
         {
             return ConstructNewNodeModel();
         }

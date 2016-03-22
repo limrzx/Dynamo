@@ -10,16 +10,18 @@ using System.Windows.Media.Imaging;
 using System.Windows.Threading;
 using DSCore;
 using Dynamo.Controls;
+using Dynamo.Scheduler;
 using Dynamo.UI;
 
-using DSCoreNodesUI;
-using Dynamo.Core.Threading;
+using CoreNodeModels;
+using Dynamo.Configuration;
 using Dynamo.Models;
 using Dynamo.ViewModels;
 using ProtoCore.Mirror;
 using Color = DSCore.Color;
+using Dynamo.Wpf;
 
-namespace Dynamo.Wpf.Nodes
+namespace CoreNodeModelsWpf.Nodes
 {
     public class ColorRangeNodeViewCustomization : INodeViewCustomization<ColorRange>
     {
@@ -62,7 +64,7 @@ namespace Dynamo.Wpf.Nodes
             });
 
             // then update on the ui thread
-            t.ThenPost((_) =>
+            t.ThenSend((_) =>
             {
                 var bmp = CreateColorRangeBitmap(colorRange);
                 gradientImage.Source = bmp;
